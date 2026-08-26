@@ -2,7 +2,7 @@
   "id": "elfrey-pocket-app",
   "title": "Elfrey Pocket App",
   "description": "Mobile-first character sheet mode for dnd5e. Open Foundry on a phone and get a full-screen character sheet with rolls, resources, spells, inventory and chat — no canvas, no scene, powered by the native dnd5e API. / Мобильный режим чарлиста для dnd5e: полноэкранный лист персонажа с бросками, ресурсами, заклинаниями, инвентарём и чатом — без канваса и сцены, на штатном API dnd5e.",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "authors": [
     {
       "name": "Elfrey"

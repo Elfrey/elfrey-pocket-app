@@ -149,6 +149,7 @@ body.pocket5e-standalone .watermark {
 .pocket5e-muted { color: var(--pocket5e-muted); }
 
 #pocket5e-picker { flex: 1; display: flex; flex-direction: column; }
+.pocket5e-picker-body { margin: 0 auto; }   /* boot/login are centered on the screen; the picker sits at the top */
 .pocket5e-picker-head { display: flex; flex-direction: column; gap: 4px; }
 .pocket5e-picker-head p { margin: 0; }
 .pocket5e-picker-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: var(--pocket5e-gap); }
@@ -164,10 +165,12 @@ body.pocket5e-standalone .watermark {
 }
 .pocket5e-list-item {
   width: 100%;
+  height: auto;                    /* core sets a fixed 2em button height — the row must wrap the portrait */
+  min-height: var(--pocket5e-tap);
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--pocket5e-radius);
   border: 1px solid var(--pocket5e-border);
   background: var(--pocket5e-surface);
@@ -176,10 +179,10 @@ body.pocket5e-standalone .watermark {
   cursor: pointer;
 }
 .pocket5e-list-item:active { background: var(--pocket5e-surface-2); }
-.pocket5e-list-item img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pocket5e-accent); flex: none; }
-.pocket5e-list-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.pocket5e-list-item img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pocket5e-accent); flex: none; }
+.pocket5e-list-text { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.25; }
 .pocket5e-list-text strong { font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pocket5e-list-text small { color: var(--pocket5e-muted); }
+.pocket5e-list-text small { color: var(--pocket5e-muted); font-size: 0.82rem; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .pocket5e-list-meta { color: var(--pocket5e-muted); font-size: 0.85rem; white-space: nowrap; }
 
 /* ---------- Buttons ---------- */
