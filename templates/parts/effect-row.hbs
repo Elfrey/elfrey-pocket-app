@@ -1,0 +1,11 @@
+<li class="pocket5e-item pocket5e-effect{{#if disabled}} off{{/if}}{{#if suppressed}} suppressed{{/if}}" data-effect-uuid="{{uuid}}" data-name="{{name}}">
+  <span class="pocket5e-item-img"><img src="{{img}}" alt=""></span>
+  <div class="pocket5e-item-text">
+    <strong>{{name}}</strong>
+    <small class="meta">{{#if source}}<span>{{source}}</span>{{/if}}{{#if duration}}<span>{{duration}}</span>{{/if}}{{#if suppressed}}<span>{{localize "POCKET5E.Effects.Suppressed"}}</span>{{/if}}</small>
+  </div>
+  <div class="pocket5e-item-btns">
+    <button type="button" class="pocket5e-btn pocket5e-iconic{{#unless disabled}} on{{/unless}}" data-action="effectToggle" title="{{#if disabled}}{{localize 'POCKET5E.Effects.Enable'}}{{else}}{{localize 'POCKET5E.Effects.Disable'}}{{/if}}" aria-pressed="{{#if disabled}}false{{else}}true{{/if}}"><i class="fa-solid fa-power-off"></i></button>
+    <button type="button" class="pocket5e-btn pocket5e-iconic pocket5e-btn-danger" data-action="effectDelete" title="{{localize 'POCKET5E.Effects.Delete'}}"><i class="fa-solid fa-trash"></i></button>
+  </div>
+</li>

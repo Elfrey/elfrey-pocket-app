@@ -1,0 +1,19 @@
+<li class="pocket5e-item pocket5e-spell{{#unless castable}} unready{{/unless}}" data-item-id="{{id}}" data-name="{{name}}">
+  {{#if hasActivities}}
+  <button type="button" class="pocket5e-item-img use" data-action="useItem" title="{{localize 'POCKET5E.Spells.Cast'}}" aria-label="{{localize 'POCKET5E.Spells.Cast'}}"><img src="{{img}}" alt=""><i class="fa-solid fa-wand-sparkles badge"></i></button>
+  {{else}}
+  <span class="pocket5e-item-img"><img src="{{img}}" alt=""></span>
+  {{/if}}
+  <button type="button" class="pocket5e-item-main" data-action="openItem">
+    <span class="pocket5e-item-text">
+      <strong>{{name}}{{#each tags}} <small class="pocket5e-tag {{cls}}" title="{{title}}">{{abbr}}</small>{{/each}}</strong>
+      <small class="meta">{{#if school}}<span>{{school}}</span>{{/if}}{{#if components}}<span>{{components}}</span>{{/if}}{{#if activation}}<span>{{activation}}</span>{{/if}}{{#if range}}<span>{{range}}</span>{{/if}}{{#if toHit}}<span class="hit">{{toHit}}</span>{{/if}}{{#if damage}}<span class="dmg">{{damage}}</span>{{/if}}{{#if save}}<span>{{save}}</span>{{/if}}{{#if methodLabel}}<span class="method">{{methodLabel}}</span>{{/if}}</small>
+    </span>
+    {{#if uses}}<span class="pocket5e-item-badge">{{uses}}</span>{{/if}}
+  </button>
+  <div class="pocket5e-item-btns">
+    {{#if attackId}}<button type="button" class="pocket5e-btn pocket5e-iconic" data-action="attack" data-activity-id="{{attackId}}" title="{{localize 'POCKET5E.Actions.Attack'}}"><i class="fa-solid fa-crosshairs"></i></button>{{/if}}
+    {{#if damageId}}<button type="button" class="pocket5e-btn pocket5e-iconic" data-action="damage" data-activity-id="{{damageId}}" title="{{localize 'POCKET5E.Actions.Damage'}}"><i class="fa-solid fa-burst"></i></button>{{/if}}
+    {{#if canPrepare}}<button type="button" class="pocket5e-btn pocket5e-iconic pocket5e-prep{{#if prepared}} on{{/if}}" data-action="togglePrepared" title="{{#if prepared}}{{localize 'POCKET5E.Spells.Unprepare'}}{{else}}{{localize 'POCKET5E.Spells.Prepare'}}{{/if}}" aria-pressed="{{#if prepared}}true{{else}}false{{/if}}"><i class="fa-solid {{#if prepared}}fa-book-open{{else}}fa-book{{/if}}"></i></button>{{/if}}
+  </div>
+</li>

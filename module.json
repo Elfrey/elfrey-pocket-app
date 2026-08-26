@@ -1,0 +1,49 @@
+{
+  "id": "elfrey-pocket-app",
+  "title": "Elfrey Pocket App",
+  "description": "Mobile-first character sheet mode for dnd5e. Open Foundry on a phone and get a full-screen character sheet with rolls, resources, spells, inventory and chat — no canvas, no scene, powered by the native dnd5e API. / Мобильный режим чарлиста для dnd5e: полноэкранный лист персонажа с бросками, ресурсами, заклинаниями, инвентарём и чатом — без канваса и сцены, на штатном API dnd5e.",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Elfrey"
+    }
+  ],
+  "url": "https://github.com/Elfrey/elfrey-pocket-app",
+  "bugs": "https://github.com/Elfrey/elfrey-pocket-app/issues",
+  "manifest": "https://github.com/Elfrey/elfrey-pocket-app/releases/latest/download/module.json",
+  "download": "https://github.com/Elfrey/elfrey-pocket-app/releases/latest/download/module.zip",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "14"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "5.0.0",
+          "verified": "5.3.3"
+        }
+      }
+    ]
+  },
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "styles": [
+    "styles/elfrey-pocket-app.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "ru",
+      "name": "Русский",
+      "path": "lang/ru.json"
+    }
+  ]
+}

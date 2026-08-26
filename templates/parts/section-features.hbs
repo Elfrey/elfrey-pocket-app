@@ -1,0 +1,15 @@
+{{#if characterRows.length}}
+<div class="pocket5e-card">
+  <h2>{{localize "POCKET5E.Features.Character"}}</h2>
+  <ul class="pocket5e-items">{{#each characterRows}}{{> pocket5e.featureRow}}{{/each}}</ul>
+</div>
+{{/if}}
+{{#each featureGroups}}
+<div class="pocket5e-card" data-group-id="{{id}}">
+  <h2>{{label}}</h2>
+  <ul class="pocket5e-items">{{#each rows}}{{> pocket5e.featureRow}}{{/each}}</ul>
+</div>
+{{/each}}
+{{#if empty}}
+<div class="pocket5e-card pocket5e-placeholder"><i class="fa-solid fa-star"></i><p class="pocket5e-muted">{{localize "POCKET5E.Features.Empty"}}</p></div>
+{{/if}}

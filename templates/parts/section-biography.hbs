@@ -1,0 +1,59 @@
+{{#if editing}}
+<div class="pocket5e-card pocket5e-bio-form" data-bio-form>
+  <h2>{{localize "POCKET5E.Biography.Characteristics"}}</h2>
+  <div class="pocket5e-form-grid">
+    <label><span>{{localize "POCKET5E.Biography.Alignment"}}</span>
+      <select name="{{edit.alignmentPath}}">
+        <option value=""{{#unless edit.alignment}} selected{{/unless}}>—</option>
+        {{#each edit.alignments}}<option value="{{key}}"{{#if selected}} selected{{/if}}>{{label}}</option>{{/each}}
+      </select>
+    </label>
+    {{#each edit.characteristics}}
+    <label><span>{{label}}</span><input type="text" name="{{path}}" value="{{value}}" autocomplete="off"></label>
+    {{/each}}
+  </div>
+  <h2>{{localize "POCKET5E.Biography.Personality"}}</h2>
+  {{#each edit.personality}}
+  <label class="pocket5e-form-block"><span>{{label}}</span><textarea name="{{path}}" rows="3">{{value}}</textarea></label>
+  {{/each}}
+  <h2>{{localize "POCKET5E.Biography.Appearance"}}</h2>
+  <textarea name="{{edit.appearancePath}}" rows="4" placeholder="{{localize 'POCKET5E.Biography.AppearancePlaceholder'}}">{{edit.appearance}}</textarea>
+  <h2>{{localize "POCKET5E.Biography.Biography"}}</h2>
+  <textarea name="{{edit.biographyPath}}" rows="10" placeholder="{{localize 'POCKET5E.Biography.BiographyPlaceholder'}}">{{edit.biography}}</textarea>
+  <div class="pocket5e-btn-grid">
+    <button type="button" class="pocket5e-btn pocket5e-btn-primary" data-action="bioSave"><i class="fa-solid fa-check"></i>{{localize "POCKET5E.Biography.Save"}}</button>
+    <button type="button" class="pocket5e-btn" data-action="bioCancel"><i class="fa-solid fa-xmark"></i>{{localize "POCKET5E.Biography.Cancel"}}</button>
+  </div>
+</div>
+{{else}}
+{{#if canEdit}}
+<div class="pocket5e-journal-bar"><span></span><button type="button" class="pocket5e-btn" data-action="bioEdit"><i class="fa-solid fa-pen"></i>{{localize "POCKET5E.Biography.Edit"}}</button></div>
+{{/if}}
+{{#if characteristics.length}}
+<div class="pocket5e-card">
+  <h2>{{localize "POCKET5E.Biography.Characteristics"}}</h2>
+  <dl class="pocket5e-dl">{{#each characteristics}}<dt>{{label}}</dt><dd>{{value}}</dd>{{/each}}</dl>
+</div>
+{{/if}}
+{{#if personality.length}}
+<div class="pocket5e-card">
+  <h2>{{localize "POCKET5E.Biography.Personality"}}</h2>
+  {{#each personality}}<div class="pocket5e-bio-block"><h3>{{label}}</h3><p>{{value}}</p></div>{{/each}}
+</div>
+{{/if}}
+{{#if appearance}}
+<div class="pocket5e-card pocket5e-desc"><h2>{{localize "POCKET5E.Biography.Appearance"}}</h2>{{{appearance}}}</div>
+{{/if}}
+{{#if biography}}
+<div class="pocket5e-card pocket5e-desc"><h2>{{localize "POCKET5E.Biography.Biography"}}</h2>{{{biography}}}</div>
+{{/if}}
+{{#if proficiencies.length}}
+<div class="pocket5e-card">
+  <h2>{{localize "POCKET5E.Biography.Proficiencies"}}</h2>
+  {{#each proficiencies}}<div class="pocket5e-bio-block"><h3>{{label}}</h3><p>{{value}}</p></div>{{/each}}
+</div>
+{{/if}}
+{{#if empty}}
+<div class="pocket5e-card pocket5e-placeholder"><i class="fa-solid fa-book"></i><p class="pocket5e-muted">{{localize "POCKET5E.Biography.Empty"}}</p></div>
+{{/if}}
+{{/if}}

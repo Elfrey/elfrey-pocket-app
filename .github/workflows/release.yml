@@ -1,0 +1,58 @@
+name: Release
+
+# Two ways to release, both end up identical:
+#  - CLI: push a tag like v1.2.3 — the workflow creates the GitHub Release itself;
+#  - GitHub UI: draft a release with a new v* tag and publish it — the workflow
+#    attaches the built assets to the release you made.
+# Either way module.zip and the stamped module.json land on the release, and the
+# module stays installable via the permanent manifest URL:
+#   https://github.com/Elfrey/elfrey-pocket-app/releases/latest/download/module.json
+
+on:
+  push:
+    tags:
+      - "v*"
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp module.json with version and release URLs
+        run: |
+          jq --arg version "${{ steps.version.outputs.value }}" \
+             --arg url "https://github.com/${{ github.repository }}" \
+             --arg manifest "https://github.com/${{ github.repository }}/releases/latest/download/module.json" \
+             --arg download "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/module.zip" \
+             '.version = $version | .url = $url | .manifest = $manifest | .download = $download' \
+             module.json > module.json.tmp
+          mv module.json.tmp module.json
+          cat module.json
+
+      - name: Build module.zip
+        run: zip -r module.zip module.json app.html manifest.webmanifest icons tools README.md DEVELOPMENT.md PLAN.md lang scripts styles templates
+
+      - name: Create GitHub Release or upload assets to the existing one
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --json id >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" module.zip module.json --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" module.zip module.json \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes
+          fi

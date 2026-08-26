@@ -1,0 +1,18 @@
+<li class="pocket5e-item pocket5e-action{{#if disabled}} disabled{{/if}}" data-item-id="{{itemId}}"{{#if activityId}} data-activity-id="{{activityId}}"{{/if}}>
+  <button type="button" class="pocket5e-item-img use" data-action="useItem" title="{{localize 'POCKET5E.Actions.Use'}}" aria-label="{{localize 'POCKET5E.Actions.Use'}}"{{#if disabled}} disabled{{/if}}>
+    <img src="{{img}}" alt=""><i class="fa-solid fa-play badge"></i>
+  </button>
+  <button type="button" class="pocket5e-item-main" data-action="openItem">
+    <span class="pocket5e-item-text">
+      <strong>{{name}}{{#if sub}} <small class="sub">· {{sub}}</small>{{/if}}</strong>
+      <small class="meta">{{#if activation}}<span>{{activation}}</span>{{/if}}{{#if range}}<span>{{range}}</span>{{/if}}{{#if toHit}}<span class="hit">{{toHit}}</span>{{/if}}{{#if damage}}<span class="dmg">{{damage}}</span>{{/if}}{{#if save}}<span>{{save}}</span>{{/if}}</small>
+    </span>
+    {{#if uses}}<span class="pocket5e-item-badge">{{uses}}</span>{{/if}}
+    {{#if quantity}}<span class="pocket5e-item-badge">×{{quantity}}</span>{{/if}}
+  </button>
+  <div class="pocket5e-item-btns">
+    {{#if canAttack}}<button type="button" class="pocket5e-btn pocket5e-iconic" data-action="attack" title="{{localize 'POCKET5E.Actions.Attack'}}" aria-label="{{localize 'POCKET5E.Actions.Attack'}}"><i class="fa-solid fa-crosshairs"></i></button>{{/if}}
+    {{#if canDamage}}<button type="button" class="pocket5e-btn pocket5e-iconic" data-action="damage" title="{{localize 'POCKET5E.Actions.Damage'}}" aria-label="{{localize 'POCKET5E.Actions.Damage'}}"><i class="fa-solid fa-burst"></i></button>{{/if}}
+    {{#if canFormula}}<button type="button" class="pocket5e-btn pocket5e-iconic" data-action="formula" title="{{localize 'POCKET5E.Actions.Roll'}}" aria-label="{{localize 'POCKET5E.Actions.Roll'}}"><i class="fa-solid fa-dice"></i></button>{{/if}}
+  </div>
+</li>

@@ -1,0 +1,153 @@
+<section class="{{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+
+  {{> pocket5e.rollbar}}
+
+  <div class="pocket5e-card pocket5e-hp-card">
+    <div class="pocket5e-hp-main">
+      <span class="pocket5e-hp-label">{{localize "POCKET5E.Overview.HP"}}</span>
+      <strong>{{hp.value}} <em>/ {{hp.max}}</em></strong>
+      {{#if hp.temp}}<span class="pocket5e-hp-temp" title="{{localize 'POCKET5E.Overview.TempHP'}}"><i class="fa-solid fa-shield-halved"></i> {{hp.temp}}</span>{{/if}}
+    </div>
+    <div class="pocket5e-hp-bar"><i style="width: {{hp.pct}}%"></i></div>
+    <div class="pocket5e-segment pocket5e-hp-modes">
+      {{#each hpModes}}
+      <button type="button" class="{{cls}}{{#if active}} active{{/if}}" data-action="hpMode" data-mode="{{id}}">{{label}}</button>
+      {{/each}}
+    </div>
+    <div class="pocket5e-hp-editor mode-{{hpEditor.mode}}">
+      <button type="button" class="pocket5e-btn" data-action="hpStep" data-step="-1" aria-label="−1"><i class="fa-solid fa-minus"></i></button>
+      <input type="number" name="hpAmount" inputmode="numeric" min="0" step="1" value="{{hpEditor.amount}}">
+      <button type="button" class="pocket5e-btn" data-action="hpStep" data-step="1" aria-label="+1"><i class="fa-solid fa-plus"></i></button>
+      <button type="button" class="pocket5e-btn pocket5e-hp-apply" data-action="hpApply">{{hpEditor.applyLabel}}</button>
+    </div>
+    {{#if death.show}}
+    <div class="pocket5e-death">
+      <div class="pocket5e-death-row">
+        <span class="pocket5e-death-kind ok">{{localize "POCKET5E.Overview.Successes"}}</span>
+        <div class="pocket5e-pips">
+          {{#each death.success}}<button type="button" class="pocket5e-pip ok{{#if filled}} filled{{/if}}" data-action="deathPip" data-kind="success" data-index="{{index}}"></button>{{/each}}
+        </div>
+        <span class="pocket5e-death-kind bad">{{localize "POCKET5E.Overview.Failures"}}</span>
+        <div class="pocket5e-pips">
+          {{#each death.failure}}<button type="button" class="pocket5e-pip bad{{#if filled}} filled{{/if}}" data-action="deathPip" data-kind="failure" data-index="{{index}}"></button>{{/each}}
+        </div>
+      </div>
+      <button type="button" class="pocket5e-btn" data-action="roll" data-roll="deathSave"><i class="fa-solid fa-skull"></i>{{localize "POCKET5E.Overview.DeathSave"}}</button>
+    </div>
+    {{/if}}
+  </div>
+
+  <div class="pocket5e-card pocket5e-combat{{#if combat.myTurn}} my-turn{{/if}}">
+    <div class="pocket5e-row2">
+      <div class="pocket5e-row2-info">
+        <span class="pocket5e-hp-label">{{localize "POCKET5E.Overview.Combat"}}</span>
+        <strong>{{combat.text}}</strong>
+      </div>
+      <button type="button" class="pocket5e-btn{{#if combat.myTurn}} pocket5e-iconic{{/if}}" data-action="roll" data-roll="initiative" title="{{localize 'POCKET5E.Overview.RollInitiative'}}" aria-label="{{localize 'POCKET5E.Overview.RollInitiative'}}">
+        <i class="fa-solid fa-bolt"></i>{{#unless combat.myTurn}}<span>{{localize "POCKET5E.Overview.Initiative"}}</span>{{/unless}}
+      </button>
+    </div>
+    {{#if combat.myTurn}}
+    <button type="button" class="pocket5e-btn pocket5e-btn-primary pocket5e-endturn" data-action="endTurn"><i class="fa-solid fa-flag-checkered"></i>{{localize "POCKET5E.Overview.EndTurn"}}</button>
+    {{/if}}
+  </div>
+
+  <div class="pocket5e-stat-grid">
+    {{#each stats}}
+    <div class="pocket5e-stat"><span>{{label}}</span><strong>{{value}}</strong>{{#if sub}}<small>{{sub}}</small>{{/if}}</div>
+    {{/each}}
+  </div>
+  {{#if senses}}<p class="pocket5e-line"><i class="fa-solid fa-eye"></i> {{senses}}</p>{{/if}}
+
+  {{#if concentration}}
+  <div class="pocket5e-card pocket5e-concentration">
+    <div class="pocket5e-row2">
+      <div class="pocket5e-row2-info">
+        <span class="pocket5e-hp-label">{{localize "POCKET5E.Overview.Concentration"}}</span>
+        <strong>{{concentration.names}}</strong>
+      </div>
+      <div class="pocket5e-inline-btns">
+        <button type="button" class="pocket5e-btn" data-action="roll" data-roll="concentration" aria-label="{{localize 'POCKET5E.Overview.ConcentrationSave'}}"><i class="fa-solid fa-dice-d20"></i></button>
+        <button type="button" class="pocket5e-btn pocket5e-btn-danger" data-action="endConcentration" aria-label="{{localize 'POCKET5E.Overview.EndConcentration'}}"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+  </div>
+  {{/if}}
+
+  <div class="pocket5e-card">
+    <h2>{{localize "POCKET5E.Overview.Abilities"}}</h2>
+    <div class="pocket5e-ability-grid">
+      {{#each abilities}}
+      <div class="pocket5e-ability{{#if proficient}} proficient{{/if}}">
+        <button type="button" class="pocket5e-ability-check" data-action="roll" data-roll="ability:{{key}}" title="{{label}}">
+          <span class="abbr">{{abbr}}</span><strong>{{mod}}</strong><small>{{value}}</small>
+        </button>
+        <button type="button" class="pocket5e-ability-save" data-action="roll" data-roll="save:{{key}}">{{localize "POCKET5E.Overview.Save"}} {{save}}</button>
+      </div>
+      {{/each}}
+    </div>
+  </div>
+
+  <div class="pocket5e-card">
+    <h2>{{localize "POCKET5E.Overview.Skills"}}</h2>
+    <ul class="pocket5e-rows">
+      {{#each skills}}
+      <li>
+        <button type="button" class="pocket5e-row" data-action="roll" data-roll="skill:{{key}}">
+          <span class="pocket5e-prof prof-{{profClass}}" title="{{profLabel}}"></span>
+          <span class="pocket5e-row-label">{{label}}<small>{{ability}}</small></span>
+          <span class="pocket5e-row-passive" title="{{localize 'POCKET5E.Overview.Passive'}}">{{passive}}</span>
+          <strong class="pocket5e-row-value">{{total}}</strong>
+        </button>
+      </li>
+      {{/each}}
+    </ul>
+  </div>
+
+  {{#if tools.length}}
+  <div class="pocket5e-card">
+    <h2>{{localize "POCKET5E.Overview.Tools"}}</h2>
+    <ul class="pocket5e-rows">
+      {{#each tools}}
+      <li>
+        <button type="button" class="pocket5e-row" data-action="roll" data-roll="tool:{{key}}">
+          <span class="pocket5e-prof prof-{{profClass}}" title="{{profLabel}}"></span>
+          <span class="pocket5e-row-label">{{label}}<small>{{ability}}</small></span>
+          <strong class="pocket5e-row-value">{{total}}</strong>
+        </button>
+      </li>
+      {{/each}}
+    </ul>
+  </div>
+  {{/if}}
+
+  <div class="pocket5e-card">
+    <h2>{{localize "POCKET5E.Overview.Conditions"}}</h2>
+    <div class="pocket5e-conditions">
+      {{#each conditions}}
+      <button type="button" class="pocket5e-chip{{#if active}} active{{/if}}" data-action="condition" data-status="{{id}}"><img src="{{img}}" alt="">{{name}}</button>
+      {{/each}}
+    </div>
+    <div class="pocket5e-exhaustion">
+      <span class="pocket5e-row-label">{{exhaustion.label}}</span>
+      <div class="pocket5e-pips">
+        {{#each exhaustion.pips}}<button type="button" class="pocket5e-pip ex{{#if filled}} filled{{/if}}" data-action="exhaustion" data-level="{{level}}">{{level}}</button>{{/each}}
+      </div>
+    </div>
+  </div>
+
+  <div class="pocket5e-card">
+    <h2>{{localize "POCKET5E.Overview.Rest"}}</h2>
+    <div class="pocket5e-row2">
+      <div class="pocket5e-row2-info">
+        <span class="pocket5e-hp-label">{{localize "POCKET5E.Overview.HitDice"}}</span>
+        <strong>{{hitDice}}</strong>
+      </div>
+      <button type="button" class="pocket5e-btn" data-action="roll" data-roll="hitDie"{{#unless hasHitDice}} disabled{{/unless}}><i class="fa-solid fa-heart"></i>{{localize "POCKET5E.Overview.HitDie"}}</button>
+    </div>
+    <div class="pocket5e-btn-grid">
+      <button type="button" class="pocket5e-btn" data-action="roll" data-roll="shortRest"><i class="fa-solid fa-mug-hot"></i>{{localize "POCKET5E.Overview.ShortRest"}}</button>
+      <button type="button" class="pocket5e-btn" data-action="roll" data-roll="longRest"><i class="fa-solid fa-bed"></i>{{localize "POCKET5E.Overview.LongRest"}}</button>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,15 @@
+<div class="pocket5e-rollbar">
+  <div class="pocket5e-segment">
+    {{#each rollModes}}
+    <button type="button" class="{{#if active}}active{{/if}}" data-action="rollMode" data-mode="{{id}}"><i class="{{icon}}"></i><span>{{label}}</span></button>
+    {{/each}}
+  </div>
+  <button type="button" class="pocket5e-fastbtn{{#if fastRoll}} active{{/if}}" data-action="fastRoll" title="{{localize 'POCKET5E.Overview.FastRollHint'}}" aria-label="{{localize 'POCKET5E.Overview.FastRoll'}}"><i class="fa-solid fa-bolt"></i></button>
+  <div class="pocket5e-privacy">
+    <button type="button" class="pocket5e-fastbtn pocket5e-privacy-btn{{#unless rollPrivacy.isPublic}} nonpublic{{/unless}}" data-action="rollPrivacy" title="{{localize 'POCKET5E.Overview.RollPrivacy'}}: {{rollPrivacy.current.label}}" aria-label="{{localize 'POCKET5E.Overview.RollPrivacy'}}"><i class="{{rollPrivacy.current.icon}}"></i></button>
+    <div class="pocket5e-privacy-backdrop" data-action="rollPrivacy"></div>
+    <nav class="pocket5e-privacy-menu">
+      {{#each rollPrivacy.modes}}<button type="button" class="{{#if active}}active{{/if}}" data-action="setRollPrivacy" data-mode="{{id}}"><i class="{{icon}}"></i>{{label}}</button>{{/each}}
+    </nav>
+  </div>
+</div>

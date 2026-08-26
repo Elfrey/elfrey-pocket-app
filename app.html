@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <!--
+    Standalone entry point of Elfrey Pocket App.
+    Served as a plain static file — from the module folder on Foundry v13, or from Foundry's public/ directory
+    (tools/install-v14.*) on v14, which serves data-directory HTML as text/plain. It loads Foundry's core client
+    library and the dnd5e system, but NO other modules, and never creates the WebGL canvas.
+
+    The core stylesheets and vendor scripts are not listed here: boot.js copies them from the server's own /join
+    page, so the set always matches the running core version. Globals below mirror what Foundry's pages define.
+    POCKET5E.domReady gates boot.js: foundry.mjs is imported only after DOMContentLoaded has fired, so its built-in
+    bootstrap (which derives the view from the URL) never runs — boot.js creates the Game itself.
+  -->
+  <base href="/">
+  <script>
+    const SIGNED_EULA = true;
+    // Route prefix from our own URL: /prefix/modules/<id>/app.html (v13) or /prefix/pocket/app.html (v14, via public/).
+    // Foundry stores asset paths relative to the server root ("icons/…", "systems/…"), hence the <base> above.
+    const ROUTE_PREFIX = (location.pathname.match(/^(.*?)\/(?:modules|pocket)\//)?.[1] ?? "").replace(/^\/+|\/+$/g, "");
+    if ( ROUTE_PREFIX ) document.querySelector("base").href = `${location.origin}/${ROUTE_PREFIX}/`;
+    const MESSAGES = null;
+    window.POCKET5E = {
+      standalone: true,
+      t0: performance.now(),
+      domReady: new Promise(resolve => {
+        if ( document.readyState !== "loading" ) resolve();
+        else window.addEventListener("DOMContentLoaded", () => resolve(), { once: true });
+      })
+    };
+  </script>
+  <title>Elfrey Pocket App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1b1d24">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="modules/elfrey-pocket-app/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="modules/elfrey-pocket-app/icons/apple-touch-icon.png">
+  <!-- The manifest must sit next to this page (its start_url is relative to it), wherever the page is served from -->
+  <script>
+    document.head.appendChild(Object.assign(document.createElement("link"), {
+      rel: "manifest", href: new URL("manifest.webmanifest", location.href).href
+    }));
+  </script>
+  <style>
+    @import "modules/elfrey-pocket-app/styles/elfrey-pocket-app.css";
+  </style>
+  <script src="modules/elfrey-pocket-app/scripts/standalone/boot.js" type="module"></script>
+</head>
+<body class="pocket5e-standalone theme-dark">
+  <!-- Mount points Foundry's core UI expects (Game#initializeUI). Kept in the DOM, hidden by CSS. -->
+  <template id="camera-views"></template>
+  <div id="interface">
+    <section id="ui-left" class="flexrow">
+      <div id="ui-left-column-1" class="flexcol">
+        <template id="scene-controls"></template>
+        <template id="players"></template>
+      </div>
+      <div id="ui-left-column-2" class="flexcol">
+        <template id="scene-navigation"></template>
+      </div>
+    </section>
+    <section id="ui-middle">
+      <header id="ui-top" class="flexcol">
+        <div id="loading"><div id="loading-bar"><label id="context"></label><label id="progress"></label></div></div>
+      </header>
+      <footer id="ui-bottom" class="flexcol"><template id="hotbar"></template></footer>
+    </section>
+    <section id="ui-right" class="flexrow">
+      <div id="ui-right-column-1" class="flexcol"></div>
+      <template id="sidebar"></template>
+    </section>
+  </div>
+  <template id="hud"></template>
+  <template id="board"></template>
+  <template id="pause"></template>
+
+  <!-- The app owns the screen -->
+  <main id="pocket5e-root">
+    <section class="pocket5e-boot">
+      <div class="pocket5e-boot-logo"><i class="fa-solid fa-dice-d20"></i></div>
+      <h1>Elfrey Pocket App</h1>
+      <p id="pocket5e-boot-status">…</p>
+    </section>
+  </main>
+
+  <aside id="tooltip" role="tooltip" popover="manual"></aside>
+</body>
+</html>

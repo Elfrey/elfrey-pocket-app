@@ -1,0 +1,32 @@
+<div class="pocket5e-journal-bar">
+  {{#if tidy}}<span class="pocket5e-muted"><i class="fa-solid fa-link"></i> {{localize "POCKET5E.Journal.TidyHint"}}</span>{{else}}<span></span>{{/if}}
+  <button type="button" class="pocket5e-btn pocket5e-btn-primary" data-action="journalAdd"><i class="fa-solid fa-plus"></i>{{localize "POCKET5E.Journal.Add"}}</button>
+</div>
+{{#each entries}}
+<div class="pocket5e-card pocket5e-journal-entry{{#if editing}} editing{{/if}}{{#if expanded}} expanded{{/if}}" data-entry-key="{{key}}">
+  {{#if editing}}
+  <div class="pocket5e-note-editor">
+    <input type="text" name="entryTitle" class="pocket5e-note-name" value="{{rawTitle}}" placeholder="{{localize 'POCKET5E.Journal.TitlePlaceholder'}}">
+    <textarea name="entryValue" rows="10" placeholder="{{localize 'POCKET5E.Journal.Placeholder'}}">{{draft}}</textarea>
+    <div class="pocket5e-btn-grid">
+      <button type="button" class="pocket5e-btn pocket5e-btn-primary" data-action="journalSave"><i class="fa-solid fa-check"></i>{{localize "POCKET5E.Journal.Save"}}</button>
+      <button type="button" class="pocket5e-btn" data-action="journalCancel"><i class="fa-solid fa-xmark"></i>{{localize "POCKET5E.Journal.Cancel"}}</button>
+    </div>
+    <button type="button" class="pocket5e-btn pocket5e-btn-danger" data-action="journalDelete"><i class="fa-solid fa-trash"></i>{{localize "POCKET5E.Journal.Delete"}}</button>
+  </div>
+  {{else}}
+  <div class="pocket5e-journal-head">
+    <button type="button" class="pocket5e-journal-title" data-action="journalToggle" aria-expanded="{{expanded}}">
+      <i class="fa-solid fa-chevron-{{#if expanded}}down{{else}}right{{/if}}"></i><span>{{title}}</span>
+    </button>
+    <button type="button" class="pocket5e-btn pocket5e-iconic" data-action="journalEdit" title="{{localize 'POCKET5E.Journal.Edit'}}"><i class="fa-solid fa-pen"></i></button>
+  </div>
+  {{#if expanded}}
+  <div class="pocket5e-desc pocket5e-note-body">{{#if isEmpty}}<p class="pocket5e-muted">{{localize "POCKET5E.Journal.Empty"}}</p>{{else}}{{{enriched}}}{{/if}}</div>
+  {{/if}}
+  {{/if}}
+</div>
+{{/each}}
+{{#if empty}}
+<div class="pocket5e-card pocket5e-placeholder"><i class="fa-solid fa-feather"></i><p class="pocket5e-muted">{{localize "POCKET5E.Journal.NoEntries"}}</p></div>
+{{/if}}

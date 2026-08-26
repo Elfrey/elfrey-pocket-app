@@ -1,0 +1,23 @@
+<li class="pocket5e-item{{#if equipped}} equipped{{/if}}{{#if unidentified}} unidentified{{/if}}" data-item-id="{{id}}" data-name="{{name}}">
+  {{#if hasActivities}}
+  <button type="button" class="pocket5e-item-img use" data-action="useItem" title="{{localize 'POCKET5E.Actions.Use'}}" aria-label="{{localize 'POCKET5E.Actions.Use'}}"><img src="{{img}}" alt=""><i class="fa-solid fa-play badge"></i></button>
+  {{else}}
+  <span class="pocket5e-item-img"><img src="{{img}}" alt=""></span>
+  {{/if}}
+  <button type="button" class="pocket5e-item-main" data-action="openItem">
+    <span class="pocket5e-item-text">
+      <strong>{{name}}{{#if showQuantity}} <small class="sub">×{{quantity}}</small>{{/if}}</strong>
+      <small class="meta">{{#if weight}}<span>{{weight}}</span>{{/if}}{{#if price}}<span>{{price}}</span>{{/if}}{{#if uses}}<span>{{uses}}</span>{{/if}}{{#if rarity}}<span>{{rarity}}</span>{{/if}}</small>
+    </span>
+  </button>
+  <div class="pocket5e-item-btns">
+    {{#if canAttune}}<button type="button" class="pocket5e-btn pocket5e-iconic{{#if attuned}} on{{/if}}" data-action="toggleAttune" title="{{#if attuned}}{{localize 'POCKET5E.Inventory.Unattune'}}{{else}}{{localize 'POCKET5E.Inventory.Attune'}}{{/if}}"><i class="fa-solid fa-sun"></i></button>{{/if}}
+    {{#if equippable}}<button type="button" class="pocket5e-btn pocket5e-iconic{{#if equipped}} on{{/if}}" data-action="toggleEquip" title="{{#if equipped}}{{localize 'POCKET5E.Inventory.Unequip'}}{{else}}{{localize 'POCKET5E.Inventory.Equip'}}{{/if}}"><i class="fa-solid fa-shield-halved"></i></button>{{/if}}
+    {{#if isContainer}}<button type="button" class="pocket5e-btn pocket5e-iconic" data-action="toggleContainer" title="{{localize 'POCKET5E.Inventory.Contents'}}"><i class="fa-solid fa-chevron-{{#if expanded}}up{{else}}down{{/if}}"></i></button>{{/if}}
+  </div>
+  {{#if expanded}}
+  <ul class="pocket5e-items pocket5e-contents">
+    {{#each contents}}{{> pocket5e.itemRow}}{{/each}}
+  </ul>
+  {{/if}}
+</li>

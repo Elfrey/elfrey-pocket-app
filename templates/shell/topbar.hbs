@@ -1,0 +1,31 @@
+<header class="pocket5e-topbar">
+  <img class="pocket5e-topbar-portrait" src="{{actor.img}}" alt="">
+  <div class="pocket5e-topbar-title">
+    <strong>{{actor.name}}</strong>
+    <small>{{summary}}</small>
+  </div>
+  <div class="pocket5e-hp-pill" style="--pct: {{hp.pct}}%" title="{{localize 'POCKET5E.Overview.HP'}}">
+    <span>{{hp.value}}<em>/{{hp.max}}</em>{{#if hp.temp}}<b>+{{hp.temp}}</b>{{/if}}</span>
+  </div>
+  <button type="button" class="pocket5e-iconbtn" data-action="toggleChat" aria-label="{{localize 'POCKET5E.Shell.Chat'}}">
+    <i class="fa-solid fa-comments"></i>
+    <span class="pocket5e-chat-badge" {{#unless unread}}hidden{{/unless}}>{{unread}}</span>
+  </button>
+  <button type="button" class="pocket5e-iconbtn" data-action="toggleMenu" aria-label="{{localize 'POCKET5E.Shell.Menu'}}">
+    <i class="fa-solid fa-ellipsis-vertical"></i>
+  </button>
+  <div class="pocket5e-backdrop" data-action="toggleMenu"></div>
+  <nav class="pocket5e-menu">
+    <h3>{{localize "POCKET5E.More.Character"}}</h3>
+    <button type="button" data-action="switchCharacter"><i class="fa-solid fa-users"></i>{{localize "POCKET5E.Shell.SwitchCharacter"}}</button>
+    <button type="button" data-action="fullSheet"><i class="fa-solid fa-scroll"></i>{{localize "POCKET5E.Shell.FullSheet"}}</button>
+    <h3>{{localize "POCKET5E.Shell.Theme"}}</h3>
+    <div class="pocket5e-menu-row">
+      {{#each themes}}<button type="button" class="{{#if active}}active{{/if}}" data-action="setTheme" data-theme="{{id}}" title="{{label}}"><i class="{{icon}}"></i><span>{{label}}</span></button>{{/each}}
+    </div>
+    <h3>{{localize "POCKET5E.More.App"}}</h3>
+    <button type="button" data-action="diagnostics"><i class="fa-solid fa-stethoscope"></i>{{localize "POCKET5E.More.Diagnostics"}}</button>
+    <button type="button" data-action="fullClient"><i class="fa-solid fa-desktop"></i>{{localize "POCKET5E.Shell.FullClient"}}</button>
+    <button type="button" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i>{{localize "POCKET5E.Shell.Logout"}}</button>
+  </nav>
+</header>

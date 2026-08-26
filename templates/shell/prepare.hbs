@@ -1,0 +1,34 @@
+<section class="pocket5e-drawer-panel pocket5e-prepare-panel">
+  <header class="pocket5e-drawer-head">
+    <div class="pocket5e-row2-info">
+      <strong>{{localize "POCKET5E.Spells.Preparing"}}</strong>
+      <small>{{#each classes}}{{name}} {{value}}/{{max}}{{#unless @last}} · {{/unless}}{{else}}{{localize "POCKET5E.Spells.PreparedCount"}}: {{total}}{{/each}}</small>
+    </div>
+    <button type="button" class="pocket5e-btn pocket5e-btn-primary pocket5e-prepdone" data-action="close"><i class="fa-solid fa-check"></i>{{localize "POCKET5E.Spells.PrepareDone"}}</button>
+  </header>
+  <div class="pocket5e-prepare-search">
+    <div class="pocket5e-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" name="prepareSearch" placeholder="{{localize 'POCKET5E.Spells.Search'}}" value="{{search}}" autocomplete="off" autocapitalize="off">
+    </div>
+  </div>
+  <div class="pocket5e-drawer-body pocket5e-prepare-body">
+    {{#each groups}}
+    <div class="pocket5e-prepare-group" data-group-id="level-{{level}}">
+      <h3>{{label}} <span>{{prepared}} / {{rows.length}}</span></h3>
+      <ul class="pocket5e-prep-list">
+        {{#each rows}}
+        <li data-item-id="{{id}}" data-name="{{name}}">
+          <button type="button" class="pocket5e-prep-row{{#if prepared}} on{{/if}}{{#if always}} always{{/if}}" data-action="togglePrepared"{{#if always}} disabled{{/if}} aria-pressed="{{#if prepared}}true{{else}}false{{/if}}">
+            <i class="fa-solid {{#if always}}fa-star{{else}}{{#if prepared}}fa-square-check{{else}}fa-square{{/if}}{{/if}}"></i>
+            <span class="name">{{name}}{{#each tags}} <small class="pocket5e-tag {{cls}}">{{abbr}}</small>{{/each}}</span>
+            <small class="meta">{{#if school}}{{school}}{{/if}}{{#if components}}{{#if school}} · {{/if}}{{components}}{{/if}}</small>
+          </button>
+        </li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/each}}
+    {{#if empty}}<p class="pocket5e-muted pocket5e-line">{{localize "POCKET5E.Spells.PrepareEmpty"}}</p>{{/if}}
+  </div>
+</section>

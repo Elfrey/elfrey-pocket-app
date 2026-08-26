@@ -1,0 +1,68 @@
+<section class="{{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  {{> pocket5e.rollbar}}
+
+  <div class="pocket5e-card pocket5e-currency{{#if currencyEditing}} editing{{/if}}">
+    <div class="pocket5e-row2">
+      <div class="pocket5e-currency-list">
+        {{#each currency}}
+        <label class="pocket5e-coin coin-{{key}}" title="{{label}}">
+          <span class="abbr">{{abbr}}</span>
+          {{#if ../currencyEditing}}<input type="text" name="currency.{{key}}" inputmode="numeric" pattern="[+\-−]?[0-9]*" value="{{value}}" autocomplete="off" title="{{localize 'POCKET5E.Inventory.CurrencyHint'}}">{{else}}<strong>{{value}}</strong>{{/if}}
+        </label>
+        {{/each}}
+      </div>
+      {{#if currencyEditing}}
+      <div class="pocket5e-inline-btns">
+        <button type="button" class="pocket5e-btn pocket5e-btn-primary pocket5e-iconic" data-action="saveCurrency" aria-label="{{localize 'POCKET5E.Inventory.Save'}}"><i class="fa-solid fa-check"></i></button>
+        <button type="button" class="pocket5e-btn pocket5e-iconic" data-action="cancelCurrency" aria-label="{{localize 'POCKET5E.Inventory.Cancel'}}"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      {{else}}
+      <button type="button" class="pocket5e-btn pocket5e-iconic" data-action="editCurrency" aria-label="{{localize 'POCKET5E.Inventory.EditCurrency'}}"><i class="fa-solid fa-pen"></i></button>
+      {{/if}}
+    </div>
+    {{#if currencyEditing}}<p class="pocket5e-line pocket5e-currency-hint">{{localize "POCKET5E.Inventory.CurrencyHint"}}</p>{{/if}}
+    {{#if encumbrance}}
+    <div class="pocket5e-enc{{#if encumbrance.encumbered}} over{{/if}}">
+      <span>{{localize "POCKET5E.Inventory.Weight"}}: {{encumbrance.value}} / {{encumbrance.max}}</span>
+      <div class="pocket5e-hp-bar"><i style="width: {{encumbrance.pct}}%"></i></div>
+    </div>
+    {{/if}}
+    {{#if attunement}}
+    <button type="button" class="pocket5e-attunement{{#if attunement.open}} open{{/if}}" data-action="toggleAttunement" aria-expanded="{{attunement.open}}">
+      <i class="fa-solid fa-sun"></i>
+      <span>{{localize "POCKET5E.Inventory.Attunement"}}: {{attunement.value}} / {{attunement.max}}</span>
+      <i class="fa-solid fa-chevron-{{#if attunement.open}}up{{else}}down{{/if}} chev"></i>
+    </button>
+    {{#if attunement.open}}
+      {{#if attunement.items.length}}
+      <ul class="pocket5e-items pocket5e-attuned">
+        {{#each attunement.items}}{{> pocket5e.itemRow}}{{/each}}
+      </ul>
+      {{else}}
+      <p class="pocket5e-line pocket5e-muted">{{localize "POCKET5E.Inventory.NoAttuned"}}</p>
+      {{/if}}
+    {{/if}}
+    {{/if}}
+  </div>
+
+  <div class="pocket5e-search">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="search" name="inventoryFilter" placeholder="{{localize 'POCKET5E.Inventory.Search'}}" value="{{filter}}" autocomplete="off" autocapitalize="off">
+  </div>
+
+  {{#each itemGroups}}
+  <div class="pocket5e-card" data-group-id="{{id}}">
+    <h2>{{label}}</h2>
+    <ul class="pocket5e-items">
+      {{#each rows}}{{> pocket5e.itemRow}}{{/each}}
+    </ul>
+  </div>
+  {{/each}}
+
+  {{#if empty}}
+  <div class="pocket5e-card pocket5e-placeholder">
+    <i class="fa-solid fa-suitcase"></i>
+    <p class="pocket5e-muted">{{localize "POCKET5E.Inventory.Empty"}}</p>
+  </div>
+  {{/if}}
+</section>

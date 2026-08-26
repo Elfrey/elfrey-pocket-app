@@ -1,0 +1,15 @@
+{{#if temporary.length}}
+<div class="pocket5e-card">
+  <h2>{{localize "POCKET5E.Effects.Temporary"}}</h2>
+  <ul class="pocket5e-items">{{#each temporary}}{{> pocket5e.effectRow}}{{/each}}</ul>
+</div>
+{{/if}}
+{{#if passive.length}}
+<div class="pocket5e-card">
+  <h2>{{localize "POCKET5E.Effects.Passive"}}</h2>
+  <ul class="pocket5e-items">{{#each passive}}{{> pocket5e.effectRow}}{{/each}}</ul>
+</div>
+{{/if}}
+{{#if empty}}
+<div class="pocket5e-card pocket5e-placeholder"><i class="fa-solid fa-bolt"></i><p class="pocket5e-muted">{{localize "POCKET5E.Effects.Empty"}}</p></div>
+{{/if}}

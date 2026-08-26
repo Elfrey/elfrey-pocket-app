@@ -1,0 +1,16 @@
+<div class="standard-form">
+  <p class="hint">{{localize "POCKET5E.Settings.ForcedUsers.Intro"}}</p>
+  {{#each users}}
+  <div class="form-group">
+    <label for="pocket5e-forced-{{id}}">{{name}}{{#if character}} <span class="hint">— {{character}}</span>{{/if}}</label>
+    <div class="form-fields">
+      <input type="checkbox" id="pocket5e-forced-{{id}}" name="user.{{id}}" {{#if checked}}checked{{/if}}>
+    </div>
+  </div>
+  {{else}}
+  <p class="hint">{{localize "POCKET5E.Settings.ForcedUsers.Empty"}}</p>
+  {{/each}}
+  <footer class="form-footer">
+    <button type="submit"><i class="fa-solid fa-save"></i> {{localize "POCKET5E.Settings.ForcedUsers.Save"}}</button>
+  </footer>
+</div>

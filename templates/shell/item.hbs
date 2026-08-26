@@ -1,0 +1,51 @@
+<section class="pocket5e-drawer-panel">
+  <header class="pocket5e-drawer-head">
+    <img src="{{img}}" alt="">
+    <div class="pocket5e-row2-info">
+      <strong>{{name}}</strong>
+      <small>{{typeLabel}}{{#if rarity}} · {{rarity}}{{/if}}{{#if spell}}{{#if spell.level}} · {{spell.level}}{{/if}}{{#if spell.school}} · {{spell.school}}{{/if}}{{/if}}</small>
+    </div>
+    <button type="button" class="pocket5e-iconbtn" data-action="close" aria-label="{{localize 'POCKET5E.Shell.Close'}}"><i class="fa-solid fa-xmark"></i></button>
+  </header>
+
+  <div class="pocket5e-drawer-body" data-item-id="{{item.id}}">
+    <div class="pocket5e-badges">
+      {{#if hasQuantity}}<span class="pocket5e-badge">{{localize "POCKET5E.Item.Quantity"}}: {{quantity}}</span>{{/if}}
+      {{#if weight}}<span class="pocket5e-badge">{{weight}}</span>{{/if}}
+      {{#if price}}<span class="pocket5e-badge">{{price}}</span>{{/if}}
+      {{#if uses}}<span class="pocket5e-badge">{{localize "POCKET5E.Item.Uses"}}: {{uses}}</span>{{/if}}
+      {{#if equipped}}<span class="pocket5e-badge on">{{localize "POCKET5E.Item.Equipped"}}</span>{{/if}}
+      {{#if attuned}}<span class="pocket5e-badge on">{{localize "POCKET5E.Item.Attuned"}}</span>{{/if}}
+      {{#if properties}}<span class="pocket5e-badge">{{properties}}</span>{{/if}}
+    </div>
+
+    <div class="pocket5e-item-controls">
+      {{#if hasQuantity}}
+      <div class="pocket5e-qty">
+        <button type="button" class="pocket5e-btn pocket5e-iconic" data-action="quantity" data-delta="-1" aria-label="−1"><i class="fa-solid fa-minus"></i></button>
+        <strong>{{quantity}}</strong>
+        <button type="button" class="pocket5e-btn pocket5e-iconic" data-action="quantity" data-delta="1" aria-label="+1"><i class="fa-solid fa-plus"></i></button>
+      </div>
+      {{/if}}
+      {{#if equippable}}<button type="button" class="pocket5e-btn{{#if equipped}} on{{/if}}" data-action="toggleEquip"><i class="fa-solid fa-shield-halved"></i>{{#if equipped}}{{localize "POCKET5E.Inventory.Unequip"}}{{else}}{{localize "POCKET5E.Inventory.Equip"}}{{/if}}</button>{{/if}}
+      {{#if canAttune}}<button type="button" class="pocket5e-btn{{#if attuned}} on{{/if}}" data-action="toggleAttune"><i class="fa-solid fa-sun"></i>{{#if attuned}}{{localize "POCKET5E.Inventory.Unattune"}}{{else}}{{localize "POCKET5E.Inventory.Attune"}}{{/if}}</button>{{/if}}
+      <button type="button" class="pocket5e-btn{{#if favorite}} on{{/if}}" data-action="favorite"><i class="fa-{{#if favorite}}solid{{else}}regular{{/if}} fa-star"></i>{{#if favorite}}{{localize "POCKET5E.Item.Unfavorite"}}{{else}}{{localize "POCKET5E.Item.Favorite"}}{{/if}}</button>
+      <button type="button" class="pocket5e-btn" data-action="postCard"><i class="fa-solid fa-comment"></i>{{localize "POCKET5E.Item.PostToChat"}}</button>
+      {{#if canDelete}}<button type="button" class="pocket5e-btn pocket5e-btn-danger" data-action="delete"><i class="fa-solid fa-trash"></i>{{localize "POCKET5E.Item.Delete"}}</button>{{/if}}
+    </div>
+
+    {{#if activities.length}}
+    <div class="pocket5e-card">
+      <h2>{{localize "POCKET5E.Item.Activities"}}</h2>
+      <ul class="pocket5e-items">
+        {{#each activities}}{{> pocket5e.activityRow}}{{/each}}
+      </ul>
+    </div>
+    {{/if}}
+
+    <div class="pocket5e-card pocket5e-desc">
+      <h2>{{localize "POCKET5E.Item.Description"}}</h2>
+      {{#if description}}{{{description}}}{{else}}<p class="pocket5e-muted">—</p>{{/if}}
+    </div>
+  </div>
+</section>

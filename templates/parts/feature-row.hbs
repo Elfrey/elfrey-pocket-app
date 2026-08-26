@@ -1,0 +1,15 @@
+<li class="pocket5e-item pocket5e-feature{{#if disabled}} disabled{{/if}}" data-item-id="{{id}}" data-name="{{name}}">
+  {{#if hasActivities}}
+  <button type="button" class="pocket5e-item-img use" data-action="useItem" title="{{localize 'POCKET5E.Actions.Use'}}" aria-label="{{localize 'POCKET5E.Actions.Use'}}"{{#if disabled}} disabled{{/if}}><img src="{{img}}" alt=""><i class="fa-solid fa-play badge"></i></button>
+  {{else}}
+  <span class="pocket5e-item-img"><img src="{{img}}" alt=""></span>
+  {{/if}}
+  <button type="button" class="pocket5e-item-main" data-action="openItem">
+    <span class="pocket5e-item-text">
+      <strong>{{name}}</strong>
+      <small class="meta">{{#if sub}}<span>{{sub}}</span>{{/if}}{{#if activation}}<span>{{activation}}</span>{{/if}}</small>
+    </span>
+    {{#if uses}}<span class="pocket5e-item-badge">{{uses}}</span>{{/if}}
+  </button>
+  <div class="pocket5e-item-btns"></div>
+</li>

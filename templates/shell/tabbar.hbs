@@ -1,0 +1,19 @@
+<nav class="tabs pocket5e-tabbar" data-group="primary">
+  {{#each tabs}}
+    {{#if (eq id "more")}}
+    <button type="button" class="pocket5e-tabbtn pocket5e-tabbtn-more {{cssClass}}" data-action="moreMenu" data-tab="more" data-group="{{group}}" aria-haspopup="true" aria-expanded="{{@root.moreMenuOpen}}">
+      <i class="{{#if @root.moreIcon}}{{@root.moreIcon}}{{else}}{{icon}}{{/if}}"></i><span>{{#if @root.moreLabel}}{{@root.moreLabel}}{{else}}{{localize label}}{{/if}}</span>
+    </button>
+    {{else}}
+    <button type="button" class="pocket5e-tabbtn {{cssClass}}" data-action="tab" data-group="{{group}}" data-tab="{{id}}" aria-pressed="{{active}}">
+      <i class="{{icon}}"></i><span>{{localize label}}</span>
+    </button>
+    {{/if}}
+  {{/each}}
+  <div class="pocket5e-more-backdrop" data-action="moreMenu"></div>
+  <nav class="pocket5e-more-menu">
+    {{#each moreSections}}
+    <button type="button" class="{{#if active}}active{{/if}}" data-action="moreSection" data-section="{{id}}"><i class="{{icon}}"></i><span>{{label}}</span>{{#if count}}<small>{{count}}</small>{{/if}}</button>
+    {{/each}}
+  </nav>
+</nav>

@@ -1,0 +1,15 @@
+{{> pocket5e.rollbar}}
+{{#each actionGroups}}
+<div class="pocket5e-card">
+  <h2>{{label}}</h2>
+  <ul class="pocket5e-items">
+    {{#each rows}}{{> pocket5e.activityRow}}{{/each}}
+  </ul>
+</div>
+{{/each}}
+{{#if empty}}
+<div class="pocket5e-card pocket5e-placeholder">
+  <i class="fa-solid fa-hand-fist"></i>
+  <p class="pocket5e-muted">{{localize "POCKET5E.Actions.Empty"}}</p>
+</div>
+{{/if}}

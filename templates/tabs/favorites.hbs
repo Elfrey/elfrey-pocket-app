@@ -1,0 +1,40 @@
+<section class="{{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  {{> pocket5e.rollbar}}
+
+  {{#if empty}}
+  <div class="pocket5e-card pocket5e-placeholder">
+    <i class="fa-solid fa-star"></i>
+    <p class="pocket5e-muted">{{localize "POCKET5E.Favorites.Empty"}}</p>
+    <p class="pocket5e-muted">{{hint}}</p>
+  </div>
+  {{else}}
+  <div class="pocket5e-card">
+    <ul class="pocket5e-items">
+      {{#each rows}}
+        {{#if (eq kind "activity")}}{{> pocket5e.activityRow}}{{/if}}
+        {{#if (eq kind "roll")}}
+        <li class="pocket5e-item pocket5e-fav-roll">
+          <button type="button" class="pocket5e-item-img use" data-action="roll" data-roll="{{spec}}" title="{{label}}"><span class="pocket5e-fav-icon"><i class="{{icon}}"></i></span><i class="fa-solid fa-dice-d20 badge"></i></button>
+          <button type="button" class="pocket5e-item-main" data-action="roll" data-roll="{{spec}}">
+            <span class="pocket5e-item-text"><strong>{{label}}</strong><small class="meta"><span>{{sub}}</span>{{#if passive}}<span>{{localize "POCKET5E.Overview.Passive"}} {{passive}}</span>{{/if}}</small></span>
+            <strong class="pocket5e-row-value">{{value}}</strong>
+          </button>
+          <div class="pocket5e-item-btns"></div>
+        </li>
+        {{/if}}
+        {{#if (eq kind "slot")}}
+        <li class="pocket5e-item pocket5e-fav-slot" data-slot="{{key}}">
+          <span class="pocket5e-item-img"><span class="pocket5e-fav-icon"><i class="fa-solid fa-wand-sparkles"></i></span></span>
+          <div class="pocket5e-item-text">
+            <strong>{{label}}</strong>
+            <div class="pocket5e-pips">{{#each pips}}<button type="button" class="pocket5e-pip slot{{#if filled}} filled{{/if}}" data-action="spellSlot" data-index="{{index}}" aria-label="{{index}}"></button>{{/each}}</div>
+          </div>
+          <span class="pocket5e-slot-count">{{value}}/{{max}}</span>
+        </li>
+        {{/if}}
+        {{#if (eq kind "effect")}}{{> pocket5e.effectRow}}{{/if}}
+      {{/each}}
+    </ul>
+  </div>
+  {{/if}}
+</section>

@@ -1,0 +1,39 @@
+<section class="pocket5e-chat-drawer">
+  <header class="pocket5e-chat-head">
+    <h2>{{localize "POCKET5E.Shell.Chat"}}</h2>
+    <div class="pocket5e-privacy">
+      <button type="button" class="pocket5e-iconbtn pocket5e-privacy-btn{{#unless rollPrivacy.isPublic}} nonpublic{{/unless}}" data-action="rollPrivacy" title="{{localize 'POCKET5E.Overview.RollPrivacy'}}: {{rollPrivacy.current.label}}" aria-label="{{localize 'POCKET5E.Overview.RollPrivacy'}}"><i class="{{rollPrivacy.current.icon}}"></i></button>
+      <div class="pocket5e-privacy-backdrop" data-action="rollPrivacy"></div>
+      <nav class="pocket5e-privacy-menu">
+        {{#each rollPrivacy.modes}}<button type="button" class="{{#if active}}active{{/if}}" data-action="setRollPrivacy" data-mode="{{id}}"><i class="{{icon}}"></i>{{label}}</button>{{/each}}
+      </nav>
+    </div>
+    <button type="button" class="pocket5e-iconbtn" data-action="toggleChat" aria-label="{{localize 'POCKET5E.Shell.Close'}}"><i class="fa-solid fa-xmark"></i></button>
+  </header>
+  <div class="pocket5e-chat-body">
+    <ol class="pocket5e-chat-log chat-log plain themed {{chatTheme}}"></ol>
+    <button type="button" class="pocket5e-chat-jump" data-chat="jump" hidden aria-label="{{localize 'POCKET5E.Chat.JumpToBottom'}}"><i class="fa-solid fa-arrow-down"></i></button>
+  </div>
+  <div class="pocket5e-tray">
+    <div class="pocket5e-dice" role="group" aria-label="{{localize 'POCKET5E.Chat.QuickDice'}}">
+      {{#each quickDice}}<button type="button" data-die="{{this}}" title="{{localize 'POCKET5E.Chat.AddDie'}}"><span class="face">{{this}}</span><span class="count" data-die-remove="{{this}}" hidden title="{{localize 'POCKET5E.Chat.RemoveDie'}}">0</span></button>{{/each}}
+    </div>
+    <div class="pocket5e-tray-row">
+      <div class="pocket5e-segment pocket5e-tray-mode">
+        <button type="button" class="active" data-tray="mode" data-mode="normal" title="{{localize 'POCKET5E.Overview.RollNormal'}}"><i class="fa-solid fa-dice-d20"></i></button>
+        <button type="button" data-tray="mode" data-mode="advantage" title="{{localize 'POCKET5E.Overview.RollAdvantage'}}"><i class="fa-solid fa-angles-up"></i></button>
+        <button type="button" data-tray="mode" data-mode="disadvantage" title="{{localize 'POCKET5E.Overview.RollDisadvantage'}}"><i class="fa-solid fa-angles-down"></i></button>
+      </div>
+      <div class="pocket5e-tray-mod">
+        <button type="button" data-tray="mod" data-step="-1" aria-label="−1"><i class="fa-solid fa-minus"></i></button>
+        <input type="text" name="trayMod" inputmode="numeric" pattern="-?[0-9]*" value="0" aria-label="{{localize 'POCKET5E.Chat.Modifier'}}">
+        <button type="button" data-tray="mod" data-step="1" aria-label="+1"><i class="fa-solid fa-plus"></i></button>
+      </div>
+      <button type="button" class="pocket5e-tray-clear" data-tray="clear" disabled title="{{localize 'POCKET5E.Chat.Clear'}}" aria-label="{{localize 'POCKET5E.Chat.Clear'}}"><i class="fa-solid fa-eraser"></i></button>
+    </div>
+  </div>
+  <form class="pocket5e-chat-form" autocomplete="off">
+    <input type="text" name="message" placeholder="{{localize 'POCKET5E.Shell.ChatPlaceholder'}}" enterkeyhint="send" autocapitalize="off">
+    <button type="submit" class="pocket5e-btn pocket5e-btn-primary" aria-label="{{localize 'POCKET5E.Shell.Send'}}"><i class="fa-solid fa-paper-plane"></i></button>
+  </form>
+</section>

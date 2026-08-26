@@ -1,0 +1,84 @@
+<section class="{{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  {{> pocket5e.rollbar}}
+
+  {{#if casting}}
+  <div class="pocket5e-card pocket5e-casting">
+    <div class="pocket5e-row2">
+      <div class="pocket5e-row2-info">
+        <span class="pocket5e-hp-label">{{localize "POCKET5E.Spells.Spellcasting"}}</span>
+        <strong>{{#if casting.classes}}{{casting.classes}}{{else}}—{{/if}}</strong>
+      </div>
+      <div class="pocket5e-casting-stats">
+        <div class="pocket5e-stat"><span>{{localize "POCKET5E.Spells.Ability"}}</span><strong>{{casting.ability}}</strong></div>
+        <div class="pocket5e-stat"><span>{{localize "POCKET5E.Spells.DC"}}</span><strong>{{casting.dc}}</strong></div>
+        <div class="pocket5e-stat"><span>{{localize "POCKET5E.Spells.Attack"}}</span><strong>{{casting.attack}}</strong></div>
+      </div>
+    </div>
+    {{#if slots.length}}
+    <div class="pocket5e-slots">
+      {{#each slots}}
+      <div class="pocket5e-slot" data-slot="{{key}}">
+        <span class="pocket5e-slot-label">{{label}}</span>
+        <div class="pocket5e-pips">
+          {{#each pips}}<button type="button" class="pocket5e-pip slot{{#if filled}} filled{{/if}}" data-action="spellSlot" data-index="{{index}}" aria-label="{{index}}"></button>{{/each}}
+        </div>
+        <span class="pocket5e-slot-count">{{value}}/{{max}}</span>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+  </div>
+  {{/if}}
+
+  <div class="pocket5e-toolbar">
+    <div class="pocket5e-toolbar-row">
+      <div class="pocket5e-segment pocket5e-spell-filter">
+        {{#each filterModes}}<button type="button" class="{{#if active}}active{{/if}}" data-action="spellFilter" data-filter="{{id}}">{{label}}</button>{{/each}}
+      </div>
+      <button type="button" class="pocket5e-fastbtn pocket5e-filterbtn{{#if activeFilters}} active{{/if}}{{#if filtersOpen}} open{{/if}}" data-action="spellFiltersToggle" title="{{localize 'POCKET5E.Spells.Filters'}}" aria-label="{{localize 'POCKET5E.Spells.Filters'}}" aria-expanded="{{filtersOpen}}">
+        <i class="fa-solid fa-filter"></i>{{#if activeFilters}}<span class="pocket5e-chat-badge">{{activeFilters}}</span>{{/if}}
+      </button>
+      {{#if canPrepare}}
+      <button type="button" class="pocket5e-btn pocket5e-prepbtn" data-action="spellPrepareMode"><i class="fa-solid fa-book-open"></i>{{localize "POCKET5E.Spells.PrepareMode"}}</button>
+      {{/if}}
+    </div>
+    <div class="pocket5e-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" name="spellSearch" placeholder="{{localize 'POCKET5E.Spells.Search'}}" value="{{search}}" autocomplete="off" autocapitalize="off">
+    </div>
+    {{#if filtersOpen}}
+    <div class="pocket5e-card pocket5e-filters">
+      {{#each filterGroups}}
+      <div class="pocket5e-filter-group">
+        <h3>{{label}}</h3>
+        <div class="pocket5e-chips">
+          {{#each chips}}<button type="button" class="pocket5e-chip{{#if active}} active{{/if}}" data-action="spellFilterChip" data-category="{{category}}" data-value="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>{{/each}}
+        </div>
+      </div>
+      {{/each}}
+      <button type="button" class="pocket5e-btn" data-action="spellFiltersClear"{{#unless activeFilters}} disabled{{/unless}}><i class="fa-solid fa-filter-circle-xmark"></i>{{localize "POCKET5E.Spells.ClearFilters"}}</button>
+    </div>
+    {{/if}}
+  </div>
+
+  {{#each spellGroups}}
+  <div class="pocket5e-card" data-group-id="level-{{level}}">
+    <h2>{{label}}</h2>
+    <ul class="pocket5e-items">
+      {{#each rows}}{{> pocket5e.spellRow}}{{/each}}
+    </ul>
+  </div>
+  {{/each}}
+
+  {{#if empty}}
+  <div class="pocket5e-card pocket5e-placeholder">
+    <i class="fa-solid fa-wand-sparkles"></i>
+    <p class="pocket5e-muted">{{localize "POCKET5E.Spells.Empty"}}</p>
+  </div>
+  {{else}}{{#if noneVisible}}
+  <div class="pocket5e-card pocket5e-placeholder">
+    <i class="fa-solid fa-wand-sparkles"></i>
+    <p class="pocket5e-muted">{{#if activeFilters}}{{localize "POCKET5E.Spells.NoneMatch"}}{{else}}{{localize "POCKET5E.Spells.NoneReady"}}{{/if}}</p>
+  </div>
+  {{/if}}{{/if}}
+</section>

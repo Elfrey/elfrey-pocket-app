@@ -1,0 +1,26 @@
+<section class="pocket5e-picker-body">
+  <header class="pocket5e-picker-head">
+    <div class="pocket5e-boot-logo"><i class="fa-solid fa-dice-d20"></i></div>
+    <h1>{{world.title}}</h1>
+    <p class="pocket5e-muted">{{user.name}} · {{localize "POCKET5E.Picker.Hint"}}</p>
+  </header>
+  {{#if characters.length}}
+  <ul class="pocket5e-list">
+    {{#each characters}}
+    <li>
+      <button type="button" class="pocket5e-list-item" data-action="pick" data-actor-id="{{id}}">
+        <img src="{{img}}" alt="">
+        <span class="pocket5e-list-text"><strong>{{name}}</strong><small>{{summary}}</small></span>
+        <span class="pocket5e-list-meta">{{hp.value}}/{{hp.max}} HP</span>
+      </button>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="pocket5e-error">{{localize "POCKET5E.Picker.NoCharacters"}}</p>
+  {{/if}}
+  <footer class="pocket5e-picker-foot">
+    <button type="button" class="pocket5e-btn" data-action="fullClient"><i class="fa-solid fa-desktop"></i>{{localize "POCKET5E.Shell.FullClient"}}</button>
+    <button type="button" class="pocket5e-btn" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i>{{localize "POCKET5E.Shell.Logout"}}</button>
+  </footer>
+</section>
