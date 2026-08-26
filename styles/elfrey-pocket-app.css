@@ -1274,6 +1274,57 @@ body.pocket5e-standalone #notifications {
 .pocket5e-prep-row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pocket5e-prep-row .meta { color: var(--pocket5e-muted); font-size: 0.75rem; white-space: nowrap; max-width: 45%; overflow: hidden; text-overflow: ellipsis; }
 
+/* ---------- Reaction prompt & remote (CPR) dialogs (bridge) ---------- */
+
+.pocket5e-reaction-panel, .pocket5e-remote-panel { grid-template-rows: auto minmax(0, 1fr) auto; }
+.pocket5e-reaction-flavor {
+  padding: 8px 12px;
+  border-radius: var(--pocket5e-radius);
+  background: var(--pocket5e-surface);
+  border: 1px solid var(--pocket5e-border);
+  font-size: 0.9rem;
+}
+.pocket5e-reaction-flavor p { margin: 0; }
+.pocket5e-reaction-row .name .meta { display: block; color: var(--pocket5e-muted); font-weight: 400; font-size: 0.75rem; }
+.pocket5e-reaction-row .check { color: var(--pocket5e-accent); }
+.pocket5e-reaction-foot { grid-template-columns: 1fr; }
+
+.pocket5e-remote-panel .pocket5e-drawer-head { padding-right: 6px; }
+.pocket5e-remote-content { font-size: 0.95rem; }
+.pocket5e-remote-content p { margin: 0 0 6px; }
+.pocket5e-remote-group { display: flex; flex-direction: column; gap: 6px; }
+.pocket5e-remote-noimg { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--pocket5e-muted); background: var(--pocket5e-surface-2); }
+.pocket5e-remote-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 12px;
+  border-radius: var(--pocket5e-radius);
+  border: 1px solid var(--pocket5e-border);
+  background: var(--pocket5e-surface);
+}
+.pocket5e-remote-row:has(> img) { grid-template-columns: 36px minmax(0, 1fr) auto; }
+.pocket5e-remote-row img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+.pocket5e-remote-row .name { font-size: 0.95rem; }
+.pocket5e-remote-row input[type=checkbox], .pocket5e-remote-row input[type=radio] { width: 24px; height: 24px; margin: 0; accent-color: var(--pocket5e-accent); }
+.pocket5e-remote-row select, .pocket5e-remote-row input[type=text], .pocket5e-remote-row input[type=number] {
+  min-height: 40px;
+  font-size: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--pocket5e-border);
+  background: var(--pocket5e-surface-2);
+  color: var(--pocket5e-text);
+  padding: 0 10px;
+}
+.pocket5e-remote-row select[multiple] { min-height: 120px; }
+.pocket5e-remote-stack { grid-template-columns: minmax(0, 1fr); }
+.pocket5e-remote-stack:has(> img) { grid-template-columns: 36px minmax(0, 1fr); }
+.pocket5e-remote-stack select, .pocket5e-remote-stack input { grid-column: 1 / -1; width: 100%; }
+.pocket5e-remote-foot { grid-template-columns: 1fr 1fr; }
+.pocket5e-remote-foot:has(> :only-child) { grid-template-columns: 1fr; }
+
 /* ---------- Target picker (GM relay) ---------- */
 
 .pocket5e-targets-panel { grid-template-rows: auto minmax(0, 1fr) auto; }

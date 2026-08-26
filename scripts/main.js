@@ -16,6 +16,7 @@ import { registerForcedUsersMenu } from "./shell/forced-users.js";
 import { applyTheme, watchSystemTheme } from "./theme.js";
 import { setRollMode, publicRollMode } from "./actions.js";
 import { registerRelayGM, registerRelayClient } from "./relay.js";
+import { registerBridge } from "./bridge.js";
 
 const T = `modules/${MODULE_ID}/templates`;
 /** Handlebars partials shared by several templates; registered under these names. */
@@ -98,6 +99,7 @@ Hooks.once("ready", async () => {
   watchSystemTheme();
   installOfflineOverlay();
   registerRelayClient();
+  registerBridge().catch(err => console.warn(`${MODULE_ID} | bridge:`, err));
   log("ready — user:", game.user.name, "character:", game.user.character?.name ?? "(none)");
 
   // Every app session starts with public rolls; the in-app picker changes it for the session only.

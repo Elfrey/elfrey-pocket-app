@@ -92,6 +92,19 @@ function patchCore() {
   foundry.helpers.DocumentIndex.prototype.index = async function() {};
 }
 
+/** The module's manifest from the world payload if the world has it enabled, else null. */
+function moduleActiveInPayload(data, id) {
+  try {
+    const manifest = (data.modules ?? []).find(m => m.id === id);
+    if ( !manifest ) return null;
+    const setting = (data.settings ?? []).find(s => s.key === "core.moduleConfiguration");
+    const config = (typeof setting?.value === "string") ? JSON.parse(setting.value) : (setting?.value ?? {});
+    return config[id] === true ? manifest : null;
+  } catch(err) {
+    return null;
+  }
+}
+
 function fail(err) {
   console.error(`${MODULE_ID} |`, err);
   const box = document.querySelector(".pocket5e-boot");
@@ -174,6 +187,17 @@ async function boot() {
     .sort((a, b) => b[1] - a[1]);
   log(`world payload ≈ ${(P.payloadBytes / 1048576).toFixed(1)} MB (JSON) in ${Math.round(P.tData - P.tWorld)} ms`,
     P.payloadBreakdown.slice(0, 5).map(([k, n]) => `${k} ${(n / 1048576).toFixed(1)} MB`).join(", "));
+
+  // 6. socketlib — the one foreign module the app loads: midi-qol and Chris's Premades address the player's client
+  //    through it (reaction prompts, saves, dialogs) and hang without an answer. Tiny and canvas-free; bridge.js
+  //    registers the handlers. Its init hook fires inside game.initialize(), so it must be imported before that.
+  const socketlibManifest = moduleActiveInPayload(data, "socketlib");
+  if ( socketlibManifest ) {
+    for ( const path of socketlibManifest.esmodules ?? ["src/socketlib.js"] ) {
+      try { await import(route(`modules/socketlib/${path}`)); }
+      catch(err) { console.warn(`${MODULE_ID} | socketlib not loaded (${path}):`, err?.message ?? err); }
+    }
+  }
 
   globalThis.game = (Game.length >= 4) ? new Game("game", data, sessionId, socket) : new Game("game", data, socket);
   await game.initialize();
