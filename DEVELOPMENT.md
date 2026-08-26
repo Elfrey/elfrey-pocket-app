@@ -40,9 +40,10 @@ scripts/
   main.js                    хуки init/ready, ранний редирект, регистрация партиалов
   theme.js                   тема (system/dark/light)
   actions.js                 обёртки над API dnd5e (единственная точка контакта с системой)
+  relay.js                   GM-relay: использование предметов на клиенте мастера (midi-qol) — обе стороны протокола
   standalone/boot.js         бутстрап (см. выше)
   standalone/login.js        экран входа
-  shell/                     PocketShell (app.js), chat, item/prepare-drawer, dialogs, full-sheet, controller, picker, forced-users
+  shell/                     PocketShell (app.js), chat, item/prepare-drawer, target-picker, dialogs, full-sheet, controller, picker, forced-users
   tabs/                      overview, favorites, features, inventory, spells, actions, biography, journal, effects, items
 templates/                   Handlebars: shell/, tabs/, parts/, settings/
 styles/elfrey-pocket-app.css всё под body.pocket5e-standalone / body.pocket5e-mobile / .pocket5e-app
@@ -56,6 +57,8 @@ tools/install-v14.{sh,ps1}   симлинк папки модуля в public/ F
 - Адреса для теста: v13 — `https://<host>/modules/elfrey-pocket-app/app.html`; v14 — `https://<host>/pocket/app.html` (после `tools/install-v14`). Форс режима: `?mobile=1` / `?mobile=0`.
 - Диагностика в консоли: `POCKET5E` (тайминги, объём данных мира, разбор по коллекциям), `game.modules.get("elfrey-pocket-app").api.MobileMode`. То же — в приложении: меню ⋮ → Диагностика.
 - CSS-классы `pocket5e-*` и ключи локализации `POCKET5E.*` намеренно не зависят от id модуля.
+
+**GM-relay (ветка `feature/midi-relay`, прототип):** мировая настройка «Использовать предметы через клиент мастера» (Авто = пока в мире включён midi-qol). Проверка: мастер в обычном клиенте на сцене с токенами (в консоли `elfrey-pocket-app | relay | GM handler ready`), игрок в приложении жмёт «использовать» у атаки/заклинания → пикер целей → в чате карточка от имени игрока, воркфлоу midi у мастера. Отладка: сообщения `relay | →` (телефон) и `relay | ←` (мастер) в консолях; протокол — в шапке `scripts/relay.js`, дизайн и ограничения — PLAN.md, фаза 10.
 
 **Переименование модуля:** `MODULE_ID` в `scripts/settings.js`, `id` в `module.json`, имя папки и симлинки, жёсткие пути в `app.html` и `manifest.webmanifest`.
 

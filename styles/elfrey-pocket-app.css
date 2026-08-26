@@ -1273,6 +1273,49 @@ body.pocket5e-standalone #notifications {
 .pocket5e-prep-row.always { cursor: default; }
 .pocket5e-prep-row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pocket5e-prep-row .meta { color: var(--pocket5e-muted); font-size: 0.75rem; white-space: nowrap; max-width: 45%; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Target picker (GM relay) ---------- */
+
+.pocket5e-targets-panel { grid-template-rows: auto minmax(0, 1fr) auto; }
+.pocket5e-target-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pocket5e-target-row {
+  width: 100%;
+  height: auto;                    /* core sets a fixed 2em button height */
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 8px;
+  border-radius: var(--pocket5e-radius);
+  border: 1px solid var(--pocket5e-border);
+  background: var(--pocket5e-surface);
+  color: var(--pocket5e-text);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pocket5e-target-row:hover { box-shadow: none; }
+.pocket5e-target-row:active { background: var(--pocket5e-surface-2); }
+.pocket5e-target-row.on { border-color: var(--pocket5e-accent); background: var(--pocket5e-surface-2); }
+.pocket5e-target-row img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pocket5e-border); }
+.pocket5e-target-row.hostile img { border-color: var(--pocket5e-danger); }
+.pocket5e-target-row.friendly img { border-color: var(--pocket5e-heal); }
+.pocket5e-target-row .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pocket5e-target-row .name small { color: var(--pocket5e-muted); font-weight: 400; }
+.pocket5e-target-row .disp { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--pocket5e-muted); }
+.pocket5e-target-row.hostile .disp { color: var(--pocket5e-danger); }
+.pocket5e-target-row.friendly .disp { color: var(--pocket5e-heal); }
+.pocket5e-target-row .check { font-size: 1.25rem; color: var(--pocket5e-muted); text-align: center; }
+.pocket5e-target-row.on .check { color: var(--pocket5e-accent); }
+.pocket5e-targets-foot {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  padding: 8px var(--pocket5e-gap) calc(var(--pocket5e-safe-bottom) + var(--pocket5e-gap));
+  border-top: 1px solid var(--pocket5e-border);
+  background: var(--pocket5e-surface);
+}
 .pocket5e-tag {
   display: inline-block;
   margin-left: 4px;

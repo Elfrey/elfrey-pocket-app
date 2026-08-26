@@ -199,6 +199,43 @@ elfrey-pocket-app/
 ### Фаза 9 — Релиз и v14
 Прогон на 30014; репозиторий `github.com/Elfrey/elfrey-pocket-app`, тег `v0.1.0`; включить в прод-мирах; короткая ссылка/QR для игроков.
 
+### Фаза 10 — GM-relay: использование предметов через клиент мастера (midi-qol) 🚧 прототип (ветка `feature/midi-relay`, 2026-08-27)
+
+**Задача владельца:** стол играет с midi-qol (+ DAE, CPR, Gambit's, Automated Animations, Sequencer/JB2A, Monk's TokenBar, LMRTFY, times-up). Хочется, чтобы использование предмета/заклинания с телефона проходило через midi «как с десктопа».
+
+**Почему само не работает.** Приложение грузит только ядро и dnd5e — ни одного другого модуля (в этом его скорость). Midi — libWrapper-обёртка над `Activity#use`, живёт в клиенте, *начавшем* использование; на телефоне её нет → уходит ванильная карточка dnd5e, midi мастера чужие ванильные карточки не перехватывает. Грузить midi и его стек в телефон нельзя: нет канваса (`core.noCanvas`), midi опирается на `canvas.tokens`, шаблоны, `game.user.targets` (объекты Token).
+
+**Референс — Swipe VTT (`data-v13/Data/modules/swipe-vtt`, исходники в source map'ах).** Его standalone (страница без клиента Foundry) делает то же: `emit('module.swipe-vtt', {action:'itemActivity', actorId, itemId, activityId, actionType, userId, advantageMode, rollMode, bonus, attackMode, targetIds})` → GM-обработчик (`src/standalone/StandaloneSocketHandler.mjs`) подменяет `game.user.targets` мастера на присланные токены, вызывает `activity.rollAttack/rollDamage/use(config, {configure:false}, {data:{author: userId}})`, восстанавливает цели; чат ретранслирует HTML карточек (комментарий «re-relay for message updates (e.g. midi-qol)»). Midi там работает *побочно* — ни одного обращения к его API; после `use()` они зовут `rollDamage()` (с midi — дубль урона); прав на `itemActivity` не проверяют. Цели — свой mini-canvas (~2000 строк: сетка, стены, шаблоны, движение). Лицензия CC BY-NC 4.0 — код не копируем, схему воспроизводим.
+
+**Что сделано в прототипе.**
+- `module.json`: `"socket": true`; канал `module.elfrey-pocket-app` через `game.socket` (socketlib на телефоне нет).
+- `scripts/relay.js` — обе стороны протокола:
+  - телефон → `{type:"use", v:1, id, userId, gmId, actorUuid, itemId, activityId, targetUuids[], advantage, disadvantage, rollMode}`; ждёт **приёма** (15 с), сам воркфлоу может идти дольше (испытания, реакции);
+  - мастер → `{type:"useResult", id, ok}` после валидации, `{ok:false, error}` при отказе или падении воркфлоу (второе сообщение показывается игроку предупреждением);
+  - исполняет только **назначенный мастер** — `game.users.activeGM` (ядро выбирает одного и того же на всех клиентах; v13 и v14), поэтому при двух мастерах каст не дублируется; если адресат ушёл — берёт текущий назначенный;
+  - валидация на стороне мастера: пользователь существует, `actor.testUserPermission(user, "OWNER")`, предмет/активность найдены, цели — TokenDocument'ы **сцены, которую смотрит мастер** (иначе отказ «мастер смотрит другую сцену»);
+  - с midi: `MidiQOL.completeActivityUse(activity, {midiOptions:{targetUuids, ignoreUserTargets:true, checkGMstatus:false, workflowOptions:{advantage, disadvantage, autoRollAttack:true, fastForwardAttack:true, fastForwardDamage:true}}}, {configure:false}, {rollMode, data:{author: userId, flags}})` — цели передаются явно, цели самого мастера не трогаются (midi сам сохраняет/восстанавливает), атака бросается сразу (никаких диалогов на экране мастера), авто-урон — по настройкам midi у мастера;
+  - без midi: `activity.use({}, {configure:false}, message)` с временной подменой целей мастера (`canvas.tokens.setTargets(ids)`, есть в v13 и v14) и восстановлением;
+  - автор карточки — игрок (`message.data.author`), видимость — его режим броска; флаг `flags.elfrey-pocket-app.relay.userId`.
+- `scripts/shell/target-picker.js` + `templates/shell/targets.hbs` — пикер целей (bottom sheet): токены сцены активного боя (иначе активной сцены, иначе сцены с токеном персонажа), скрытые не показываются, сортировка враги → нейтральные → союзники, мультивыбор, «Без цели» / «Использовать (N)». Показывается, когда у активности `target.affects.type` не пуст и не `self`, либо есть `target.template.type` (AoE — игрок отмечает задетых руками, шаблон не ставится).
+- `PocketShell#useActivity(item, activity, event)` — точка решения: relay применим (настройка + midi в мире + мастер онлайн) → пикер → `requestUse`; иначе локальный `useItem`. Кнопки «использовать» в списках и в карточке предмета идут через неё. Преимущество/помеха берутся из переключателя приложения и сбрасываются как обычно.
+- Мировая настройка `gmRelay`: Авто (пока в мире включён midi-qol — телефон это знает без загрузки модуля, конфиг модулей приходит с миром) / Всегда / Никогда.
+- Локализация `POCKET5E.Relay.*`, `POCKET5E.Targets.*`, `POCKET5E.Settings.Relay.*`; стили `.pocket5e-target-row`, `.pocket5e-targets-*`.
+
+**Ограничения прототипа (осознанные).**
+- `dialog.configure=false`: заклинание кастуется базовым кругом, расход ресурсов — по умолчанию активности. Апкаст и выбор расходников — этап 10.2 (см. ниже).
+- Только «использовать». Отдельные кнопки «бросок атаки»/«урон» в приложении остаются локальными (без midi) — как аварийный путь.
+- Диалоги, которые задаёт сам midi/CPR у *автора воркфлоа* (Divine Smite, GWM, метамагия, выбор цели Hex), всплывут у мастера. Авто-урон — по настройкам midi мастера.
+- Подсказки midi игроку на телефоне (испытания через prompt/LMRTFY/Monk's, реакции) не доходят — на телефоне нет обработчиков socketlib-канала `midi-qol`; midi ждёт таймаут и откатывается на мастера. Это проблема **уже сейчас**, независимо от relay.
+- Предмет с несколькими активностями без выбранной → локальный путь (dnd5e-диалог выбора на телефоне, без midi). Цели на сцене, которую мастер не смотрит → отказ с понятным текстом.
+- Не проверено на живом столе: нужен прогон v13 (30013) с midi.
+
+**Этапы.**
+- **10.1 (этот прототип)** — проверить на столе: атака оружием по цели, заклинание с испытанием по нескольким целям, бафф на себя (`affects.type=self` — пикер не показывается, midi сам таргетит владельца), AoE с ручным выбором целей; два мастера онлайн; мастер на другой сцене; midi выключен (fallback); настройка «Никогда».
+- **10.2 — конфигурация использования на телефоне.** dnd5e на телефоне есть: показать штатный `ActivityUsageDialog` локально (`activity._prepareUsageConfig(usage)` + `dialogConfig.applicationClass.create(activity, usageConfig, options)`), выбранное (`spell.slot`, `consume.*`, `scaling`) сериализовать и передать мастеру в `usage`. Даст апкаст и выбор расходников без диалогов у мастера.
+- **10.3 — подсказки midi на телефоне.** Загрузить в приложение socketlib (маленький, без канваса) и зарегистрировать на телефоне обработчики канала `midi-qol`: `rollAbility`/`rollAbilityV2` → `actor.rollSavingThrow` в приложении, `chooseReactions` → свой пикер реакций, `D20Roll`. Тогда игрок на телефоне станет полноправным участником воркфлоу (испытания, реакции). Сигнатуры — `src/module/GMAction.ts` в source map midi.
+- **10.4 — мини-карта** (как в Swipe): позиции токенов на сетке, дистанция до цели, при желании шаблон AoE с автоотметкой задетых и передачей `createTemplate` мастеру. Только если 10.1–10.3 оправдают себя.
+
 ## 6. Шпаргалка API (dnd5e 5.3.3, Foundry 13.351 / 14.367)
 
 **Actor5e**
@@ -226,6 +263,17 @@ item.update({"system.equipped", "system.attuned", "system.quantity", "system.use
 item.displayCard()
 ```
 
+**midi-qol 13.0.64 (исходники в `midi-qol.js.map`)**
+```js
+MidiQOL.completeActivityUse(activity|uuid, usage, dialog, message)   // Promise<Workflow>, ждёт postCleanup (≤90 с), цели мастера восстанавливает сам
+usage.midiOptions: { targetUuids: string[], targetsToUse: Set<Token>, ignoreUserTargets, checkGMstatus, asUser, rollAs, spellLevel,
+                     configureDialog, workflowOptions: { advantage, disadvantage, autoRollAttack, fastForwardAttack, autoRollDamage,
+                     fastForwardDamage, targetConfirmation, noOnUseMacro, noProvokeReaction, preSelectedTargetUuids, … } }
+MidiQOL.completeItemUse(item|uuid, config, dialog, message)          // выбор активности через MidiActivityChoiceDialog
+MidiQOL.socket()  // socketlib: "completeItemUse", "completeActivityUse", "rollAbility(V2)", "chooseReactions", "D20Roll", "monksTokenBarSaves"…
+```
+Цели: `game.user.targets` — объекты Token (нужен канвас); `canvas.tokens.setTargets(ids, {mode})` (v13 и v14); `game.users.activeGM` — назначенный мастер, одинаков на всех клиентах.
+
 **Хуки:** dnd5e — `dnd5e.restCompleted`, `dnd5e.applyDamage`, `dnd5e.postUseActivity`, `dnd5e.rollAttack`, `dnd5e.rollDamage`, `dnd5e.beginConcentrating`, `dnd5e.endConcentration`, `dnd5e.renderChatMessage`; ядро — `updateActor`, `*Item`, `*ActiveEffect`, `createChatMessage`, `updateChatMessage`, `renderChatMessageHTML`, `updateCombat`, `renderUserConfig`.
 
 **Ядро (standalone):** `Game.getCookies()`, `Game.connect(sessionId)`, `Game.getData(socket, "game")`, `new Game("game", data, sessionId, socket)`, `game.initialize()`; `ChatMessage#renderHTML()`, `ChatMessage#visible`; `game.logOut()`; `ui.sidebar.changeTab/expand/collapse`, `ui.chat.renderPopout()`; `foundry.utils.getRoute(path)`.
@@ -241,6 +289,9 @@ item.displayCard()
 | Кнопки карточек dnd5e «применить урон» ориентированы на выделенные токены | Проверить в фазе 6; своя кнопка «к себе» при необходимости |
 | Игрок без owned-персонажа | Экран-подсказка; `renderUserConfig` закрывается |
 | Смена API dnd5e (5.x → 6.x) | Обёртки в `actions.js` |
+| GM-relay: карточка от имени игрока создаётся клиентом мастера — диалоги midi/CPR всплывают у мастера, автор воркфлоу — мастер | `configure:false`, `autoRollAttack/fastForward*`; апкаст — фаза 10.2; матрица «работает/нет» — фаза 10 |
+| GM-relay: цели резолвятся на канвасе мастера — другая сцена = нет целей | Явный отказ «мастер смотрит другую сцену»; пикер берёт сцену активного боя |
+| midi-qol: подсказки испытаний/реакций не доходят до телефона (нет socketlib-обработчиков) — уже сейчас | Фаза 10.3; пока — настройки midi «мастер бросает за игрока» |
 
 ## 8. Тестирование
 
@@ -291,4 +342,5 @@ item.displayCard()
 1. Приоритет фаз 3–5: инвентарь/атаки или заклинания первыми?
 2. Нужен ли режим для GM (быстрый лист NPC с телефона) — сейчас вне рамок.
 3. Стиль: нейтральный тёмный UI (как в PoC) или «под dnd5e» (шрифты/цвета системы)?
+| 2026-08-27 | Использование предметов/заклинаний с телефона должно проходить через midi-qol | фаза 10 🚧 прототип в `feature/midi-relay` |
 | 2026-08-26 | «Дневник» Tidy вместо заметок; редактируемая биография; модификаторы бросков в Инвентаре и Особенностях; «Действия» → в «Ещё», «Особенности» → в бар; «Ещё» = всплывающий список; сервисные блоки → меню ⋮ | фаза 5 ✅ |

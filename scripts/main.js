@@ -15,6 +15,7 @@ import { registerDialogAdaptation } from "./shell/dialogs.js";
 import { registerForcedUsersMenu } from "./shell/forced-users.js";
 import { applyTheme, watchSystemTheme } from "./theme.js";
 import { setRollMode, publicRollMode } from "./actions.js";
+import { registerRelayGM, registerRelayClient } from "./relay.js";
 
 const T = `modules/${MODULE_ID}/templates`;
 /** Handlebars partials shared by several templates; registered under these names. */
@@ -83,7 +84,10 @@ Hooks.once("init", () => {
 Hooks.once("ready", async () => {
   const mod = game.modules.get(MODULE_ID);
   if ( mod ) mod.api = { MobileMode, PocketApp };
-  if ( !MobileMode.standalone ) return;
+  if ( !MobileMode.standalone ) {
+    registerRelayGM();     // the GM's desktop client executes item uses sent from phones (relay.js)
+    return;
+  }
 
   if ( game.system.id !== "dnd5e" ) {
     ui.notifications.warn(game.i18n.localize("POCKET5E.Notify.NotDnd5e"));
@@ -93,6 +97,7 @@ Hooks.once("ready", async () => {
   applyTheme();
   watchSystemTheme();
   installOfflineOverlay();
+  registerRelayClient();
   log("ready — user:", game.user.name, "character:", game.user.character?.name ?? "(none)");
 
   // Every app session starts with public rolls; the in-app picker changes it for the session only.
