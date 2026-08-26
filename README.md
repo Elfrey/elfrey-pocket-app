@@ -5,6 +5,11 @@
 ## Установка (мастер)
 
 1. В Foundry: *Дополнения → Установить модуль* → вставьте manifest-URL → включите **Elfrey Pocket App** в мире.
+
+   Manifest-URL:
+   ```
+   https://github.com/Elfrey/elfrey-pocket-app/releases/latest/download/module.json
+   ```
 2. **Только для Foundry v14** — один разовый шаг на компьютере, где запущен Foundry (v14 иначе не отдаёт страницу приложения). Повторяйте его после каждого обновления Foundry:
    - **macOS / Linux:** `sh Data/modules/elfrey-pocket-app/tools/install-v14.sh`
    - **Windows:** правый клик по PowerShell → *Запуск от имени администратора* → `.\Data\modules\elfrey-pocket-app\tools\install-v14.ps1`
