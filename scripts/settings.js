@@ -52,10 +52,14 @@ export const SETTINGS = Object.freeze({
   /** World setting (GM): user ids that are always sent to the app when they open /game. */
   FORCED_USERS: "forcedUsers",
   /** World setting (GM): where the app page is served from, relative to the Foundry root (v14 needs a non-Data path). */
-  APP_URL: "appUrl"
+  APP_URL: "appUrl",
+  /** World setting (GM): "auto" | "on" | "off" — run item/activity use on the GM's client (midi-qol), see relay.js. */
+  RELAY: "gmRelay"
 });
 
 export const MODE = Object.freeze({ AUTO: "auto", ON: "on", OFF: "off" });
+/** GM relay modes: auto = only while midi-qol is active in the world. */
+export const RELAY = Object.freeze({ AUTO: "auto", ON: "on", OFF: "off" });
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, SETTINGS.MODE, {
@@ -123,6 +127,20 @@ export function registerSettings() {
     config: true,
     type: String,
     default: ""      // empty = automatic: v13 → APP_PAGE, v14 → PUBLIC_PAGE
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.RELAY, {
+    name: "POCKET5E.Settings.Relay.Name",
+    hint: "POCKET5E.Settings.Relay.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      [RELAY.AUTO]: "POCKET5E.Settings.Relay.Auto",
+      [RELAY.ON]: "POCKET5E.Settings.Relay.On",
+      [RELAY.OFF]: "POCKET5E.Settings.Relay.Off"
+    },
+    default: RELAY.AUTO
   });
 
   game.settings.register(MODULE_ID, SETTINGS.FORCED_USERS, {

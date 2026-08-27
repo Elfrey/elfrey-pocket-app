@@ -15,6 +15,8 @@ import { registerDialogAdaptation } from "./shell/dialogs.js";
 import { registerForcedUsersMenu } from "./shell/forced-users.js";
 import { applyTheme, watchSystemTheme } from "./theme.js";
 import { setRollMode, publicRollMode } from "./actions.js";
+import { registerRelayGM, registerRelayClient } from "./relay.js";
+import { registerBridge } from "./bridge.js";
 
 const T = `modules/${MODULE_ID}/templates`;
 /** Handlebars partials shared by several templates; registered under these names. */
@@ -66,6 +68,7 @@ Hooks.once("init", () => {
     registerChatCardEnhancements();
     registerDialogAdaptation();
     partialsReady = foundry.applications.handlebars.loadTemplates(PARTIALS);
+    installHotReload();
     log("init — standalone app");
     return;
   }
@@ -83,7 +86,10 @@ Hooks.once("init", () => {
 Hooks.once("ready", async () => {
   const mod = game.modules.get(MODULE_ID);
   if ( mod ) mod.api = { MobileMode, PocketApp };
-  if ( !MobileMode.standalone ) return;
+  if ( !MobileMode.standalone ) {
+    registerRelayGM();     // the GM's desktop client executes item uses sent from phones (relay.js)
+    return;
+  }
 
   if ( game.system.id !== "dnd5e" ) {
     ui.notifications.warn(game.i18n.localize("POCKET5E.Notify.NotDnd5e"));
@@ -93,6 +99,8 @@ Hooks.once("ready", async () => {
   applyTheme();
   watchSystemTheme();
   installOfflineOverlay();
+  registerRelayClient();
+  registerBridge().catch(err => console.warn(`${MODULE_ID} | bridge:`, err));
   log("ready — user:", game.user.name, "character:", game.user.character?.name ?? "(none)");
 
   // Every app session starts with public rolls; the in-app picker changes it for the session only.
@@ -100,6 +108,36 @@ Hooks.once("ready", async () => {
   await partialsReady;
   PocketApp.start();
 });
+
+/**
+ * Foundry's hot reload (options.json "hotReload": true + flags.hotReload in module.json) pushes changed css/hbs/json
+ * to every client. Core handles them by path; two of our cases need help: the app page loads the stylesheet through
+ * an @import whose path spelling may differ from the server's, and templates registered as named partials
+ * (PARTIALS) are cached under the name, not the path.
+ */
+function installHotReload() {
+  Hooks.on("hotReload", data => {
+    if ( data?.packageId !== MODULE_ID ) return;
+    const file = String(data.path ?? "").split("/").pop();
+    if ( data.extension === "css" ) {
+      for ( const style of document.querySelectorAll("style") ) {
+        if ( !style.textContent.includes(`/${file}`) ) continue;
+        style.textContent = style.textContent.replace(/@import\s+"([^"?]+)(?:\?[^"]*)?"/, `@import "$1?${Date.now()}"`);
+        log("hot reload — styles");
+        return false;   // handled
+      }
+      return;           // let core try the <link> route
+    }
+    if ( data.extension === "hbs" ) {
+      const path = String(data.path ?? "").replace(/^\//, "");
+      const name = Object.entries(PARTIALS).find(([, p]) => p === path)?.[0];
+      if ( name ) {
+        try { Handlebars.registerPartial(name, Handlebars.compile(data.content)); } catch(err) { console.error(err); }
+      }
+      log("hot reload — template", path);
+    }
+  });
+}
 
 /** Full-screen notice while the socket is down; core reconnects (and reloads if needed) on its own. */
 function installOfflineOverlay() {

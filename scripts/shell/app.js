@@ -13,8 +13,10 @@ import { MODULE_ID, SETTINGS, MODE } from "../settings.js";
 import {
   performRoll, applyHP, setExhaustion, setDeathSaves, toggleCondition, endConcentration, endTurn, actorSummary,
   setRollMode, useItem, rollActivityAttack, rollActivityDamage, rollActivityFormula, toggleEquipped, toggleAttuned,
-  changeQuantity, updateCurrency, togglePrepared, setSpellSlot, haptic
+  changeQuantity, updateCurrency, togglePrepared, setSpellSlot, haptic, getRollMode
 } from "../actions.js";
+import { relayEnabled, designatedGM, needsTargets, requestUse } from "../relay.js";
+import { TargetPicker } from "./target-picker.js";
 import { THEMES, currentTheme, resolveTheme } from "../theme.js";
 import { prepareOverview, rollPrivacyContext } from "../tabs/overview.js";
 import { prepareActions } from "../tabs/actions.js";
@@ -415,6 +417,34 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
+  /**
+   * Use an activity — through the GM relay when it applies (midi-qol world, GM online), locally otherwise.
+   * The relay needs a concrete activity: an item with several and none chosen falls back to the local dnd5e flow.
+   * @param {Item5e} item
+   * @param {Activity|null} activity
+   * @param {Event} [event]
+   * @returns {Promise<*>}   null when the player dismissed the target picker.
+   */
+  async useActivity(item, activity, event) {
+    activity ??= (item.system?.activities?.size === 1) ? item.system.activities.contents[0] : null;
+    if ( !activity || !relayEnabled() ) return useItem(item, activity);
+    if ( !designatedGM() ) {
+      ui.notifications.warn(game.i18n.localize("POCKET5E.Relay.NoGM"));
+      return useItem(item, activity);
+    }
+    let targetUuids = [];
+    if ( needsTargets(activity) ) {
+      const picked = await TargetPicker.pick({ actor: this.actor, activity });
+      if ( picked === null ) return null;
+      targetUuids = picked;
+    }
+    const { advantage, disadvantage } = this.rollOptions(event);
+    const result = await requestUse(activity, { targetUuids, advantage, disadvantage, rollMode: getRollMode() });
+    this.consumeRollMode();
+    ui.notifications.info(game.i18n.localize("POCKET5E.Relay.Sent"));
+    return result;
+  }
+
   /** The advantage/disadvantage choice applies to one roll only. */
   consumeRollMode() {
     if ( this.rollMode === "normal" ) return;
@@ -754,7 +784,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
     const item = this.#itemFor(target);
     if ( !item ) return;
     haptic();
-    await this.#guard(target, () => useItem(item, this.#activityFor(item, target)));
+    await this.#guard(target, () => this.useActivity(item, this.#activityFor(item, target), event));
   }
 
   static async #onAttack(event, target) {

@@ -147,7 +147,9 @@ export class ItemDrawer extends HandlebarsApplicationMixin(ApplicationV2) {
   static #onClose() { this.close(); }
 
   static async #onUse(event, target) {
-    await this.#guard(target, () => useItem(this.item, this.#activity(target)));
+    await this.#guard(target, () => this.shell?.useActivity
+      ? this.shell.useActivity(this.item, this.#activity(target), event)
+      : useItem(this.item, this.#activity(target)));
   }
 
   static async #onAttack(event, target) {

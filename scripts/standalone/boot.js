@@ -92,6 +92,36 @@ function patchCore() {
   foundry.helpers.DocumentIndex.prototype.index = async function() {};
 }
 
+/**
+ * The module's manifest from the world payload if the world has it enabled, else null.
+ * The server stamps `active` on every module it sends (world.mjs: active = core.moduleConfiguration[id]); the
+ * setting itself is only a fallback for payloads without that flag.
+ */
+function moduleActiveInPayload(data, id) {
+  const P = globalThis.POCKET5E;
+  const manifest = (data.modules ?? []).find(m => m.id === id);
+  if ( !manifest ) {
+    log(`${id}: not installed in this world (payload lists ${(data.modules ?? []).length} modules)`);
+    P.socketlib = "not installed";
+    return null;
+  }
+  let active = manifest.active;
+  if ( typeof active !== "boolean" ) {
+    try {
+      const setting = (data.settings ?? []).find(s => s.key === "core.moduleConfiguration");
+      const config = (typeof setting?.value === "string") ? JSON.parse(setting.value) : (setting?.value ?? {});
+      active = config[id] === true;
+    } catch(err) {
+      active = false;
+    }
+  }
+  if ( !active ) {
+    log(`${id}: installed but not enabled in this world`);
+    P.socketlib = "not enabled";
+  }
+  return active ? manifest : null;
+}
+
 function fail(err) {
   console.error(`${MODULE_ID} |`, err);
   const box = document.querySelector(".pocket5e-boot");
@@ -174,6 +204,26 @@ async function boot() {
     .sort((a, b) => b[1] - a[1]);
   log(`world payload ≈ ${(P.payloadBytes / 1048576).toFixed(1)} MB (JSON) in ${Math.round(P.tData - P.tWorld)} ms`,
     P.payloadBreakdown.slice(0, 5).map(([k, n]) => `${k} ${(n / 1048576).toFixed(1)} MB`).join(", "));
+
+  // 6. socketlib — the one foreign module the app loads: midi-qol and Chris's Premades address the player's client
+  //    through it (reaction prompts, saves, dialogs) and hang without an answer. Tiny and canvas-free; bridge.js
+  //    registers the handlers. Its init hook fires inside game.initialize(), so it must be imported before that.
+  const socketlibManifest = moduleActiveInPayload(data, "socketlib");
+  if ( socketlibManifest ) {
+    // The server vends manifest paths already prefixed with the package folder ("modules/socketlib/src/…").
+    const paths = socketlibManifest.esmodules?.length ? socketlibManifest.esmodules : ["modules/socketlib/src/socketlib.js"];
+    for ( const path of paths ) {
+      try {
+        await import(route(path.startsWith("modules/") ? path : `modules/socketlib/${path}`));
+        P.socketlib = `loaded ${socketlibManifest.version ?? ""} (${path})`;
+        log(`socketlib ${P.socketlib}`);
+      } catch(err) {
+        P.socketlib = `import failed: ${err?.message ?? err}`;
+        console.warn(`${MODULE_ID} | socketlib not loaded (${path}):`, err?.message ?? err);
+      }
+    }
+  }
+  else P.socketlib ??= "skipped";
 
   globalThis.game = (Game.length >= 4) ? new Game("game", data, sessionId, socket) : new Game("game", data, socket);
   await game.initialize();

@@ -40,9 +40,11 @@ scripts/
   main.js                    хуки init/ready, ранний редирект, регистрация партиалов
   theme.js                   тема (system/dark/light)
   actions.js                 обёртки над API dnd5e (единственная точка контакта с системой)
+  relay.js                   GM-relay: использование предметов на клиенте мастера (midi-qol) — обе стороны протокола
+  bridge.js                  ответы на socketlib-запросы midi-qol/CPR к игроку (реакции, броски, диалоги CPR); socketlib грузит boot.js
   standalone/boot.js         бутстрап (см. выше)
   standalone/login.js        экран входа
-  shell/                     PocketShell (app.js), chat, item/prepare-drawer, dialogs, full-sheet, controller, picker, forced-users
+  shell/                     PocketShell (app.js), chat, item/prepare-drawer, target-picker, reaction-picker, remote-dialog, dialogs, full-sheet, controller, picker, forced-users
   tabs/                      overview, favorites, features, inventory, spells, actions, biography, journal, effects, items
 templates/                   Handlebars: shell/, tabs/, parts/, settings/
 styles/elfrey-pocket-app.css всё под body.pocket5e-standalone / body.pocket5e-mobile / .pocket5e-app
@@ -56,6 +58,10 @@ tools/install-v14.{sh,ps1}   симлинк папки модуля в public/ F
 - Адреса для теста: v13 — `https://<host>/modules/elfrey-pocket-app/app.html`; v14 — `https://<host>/pocket/app.html` (после `tools/install-v14`). Форс режима: `?mobile=1` / `?mobile=0`.
 - Диагностика в консоли: `POCKET5E` (тайминги, объём данных мира, разбор по коллекциям), `game.modules.get("elfrey-pocket-app").api.MobileMode`. То же — в приложении: меню ⋮ → Диагностика.
 - CSS-классы `pocket5e-*` и ключи локализации `POCKET5E.*` намеренно не зависят от id модуля.
+
+**Кэш манифестов и hot reload.** Сервер читает `module.json` при старте и при каждом выходе в Setup (`Return to Setup` → запуск мира), а не при перезагрузке страницы: новая версия в списке модулей и флаг `"socket": true` появляются только после этого. Файлы из Data отдаются с `Cache-Control: no-cache` — скрипты подхватываются обычной перезагрузкой. Штатный **hot reload** Foundry включён: `"hotReload": true` в `data-v13/Config/options.json` (читается при старте сервера — после правки нужен рестарт) и `flags.hotReload` в `module.json` (`styles`, `templates`, `lang`: css/hbs/json). Изменённые стили, шаблоны и локализация прилетают в открытые клиенты без перезагрузки — и в `/game`, и в приложение (хук `hotReload` в `main.js` обновляет `@import` в `app.html` и именованные партиалы `PARTIALS`). JS hot reload не трогает — для скриптов перезагрузка страницы.
+
+**GM-relay (ветка `feature/midi-relay`, прототип):** мировая настройка «Использовать предметы через клиент мастера» (Авто = пока в мире включён midi-qol). Проверка: мастер в обычном клиенте на сцене с токенами (в консоли `elfrey-pocket-app | relay | GM handler ready`), игрок в приложении жмёт «использовать» у атаки/заклинания → пикер целей → в чате карточка от имени игрока, воркфлоу midi у мастера. Отладка: сообщения `relay | →` (телефон) и `relay | ←` (мастер) в консолях; протокол — в шапке `scripts/relay.js`, дизайн и ограничения — PLAN.md, фаза 10. Bridge: в консоли телефона `bridge | answering midi-qol: …` и `answering chris-premades: …` — значит socketlib загружен и обработчики стоят; без этих строк реакции и CPR-диалоги игрока не работают (проверьте, что socketlib включён в мире).
 
 **Переименование модуля:** `MODULE_ID` в `scripts/settings.js`, `id` в `module.json`, имя папки и симлинки, жёсткие пути в `app.html` и `manifest.webmanifest`.
 

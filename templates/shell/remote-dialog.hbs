@@ -1,0 +1,47 @@
+<section class="pocket5e-drawer-panel pocket5e-remote-panel">
+  <header class="pocket5e-drawer-head">
+    <div class="pocket5e-row2-info">
+      <strong>{{title}}</strong>
+      <small>{{localize "POCKET5E.Bridge.DialogFrom"}}</small>
+    </div>
+    <button type="button" class="pocket5e-iconbtn" data-action="close" aria-label="{{localize 'POCKET5E.Shell.Close'}}"><i class="fa-solid fa-xmark"></i></button>
+  </header>
+  <div class="pocket5e-drawer-body pocket5e-remote-body">
+    {{#if content}}<div class="pocket5e-remote-content">{{{content}}}</div>{{/if}}
+    {{#each groups}}
+    <div class="pocket5e-remote-group">
+      {{#if isButton}}
+      <ul class="pocket5e-target-list">
+        {{#each rows}}<li><button type="button" class="pocket5e-target-row pocket5e-remote-choice" data-action="dlgButton" data-name="{{name}}" {{#if tooltip}}title="{{tooltip}}"{{/if}}>{{#if image}}<img src="{{image}}" alt="">{{else}}<span class="pocket5e-remote-noimg"><i class="fa-solid fa-hand-pointer"></i></span>{{/if}}<span class="name">{{label}}</span><span></span><i class="fa-solid fa-chevron-right check"></i></button></li>{{/each}}
+      </ul>
+      {{/if}}
+      {{#if isCheckbox}}
+      {{#each rows}}<label class="pocket5e-remote-row">{{#if image}}<img src="{{image}}" alt="">{{/if}}<span class="name">{{label}}</span><input type="checkbox" data-field="{{name}}" data-kind="checkbox" {{#if checked}}checked{{/if}}></label>{{/each}}
+      {{/if}}
+      {{#if isRadio}}
+      {{#each rows}}<label class="pocket5e-remote-row">{{#if image}}<img src="{{image}}" alt="">{{/if}}<span class="name">{{label}}</span><input type="radio" name="{{../radioName}}" value="{{name}}" data-field="{{../radioName}}" data-kind="radio" {{#if checked}}checked{{/if}}></label>{{/each}}
+      {{/if}}
+      {{#if isSelectAmount}}
+      {{#each rows}}<label class="pocket5e-remote-row">{{#if image}}<img src="{{image}}" alt="">{{/if}}<span class="name">{{label}}</span><select data-field="{{name}}" data-kind="amount">{{#each amounts}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{value}}</option>{{/each}}</select></label>{{/each}}
+      {{/if}}
+      {{#if isSelectOption}}
+      {{#each rows}}<label class="pocket5e-remote-row pocket5e-remote-stack">{{#if image}}<img src="{{image}}" alt="">{{/if}}<span class="name">{{label}}</span><select data-field="{{name}}" data-kind="select">{{#each options}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>{{/each}}
+      {{/if}}
+      {{#if isSelectMany}}
+      {{#each rows}}<label class="pocket5e-remote-row pocket5e-remote-stack"><span class="name">{{label}}</span><select multiple data-field="{{name}}" data-kind="multi">{{#each options}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>{{/each}}
+      {{/if}}
+      {{#if isNumber}}
+      {{#each rows}}<label class="pocket5e-remote-row"><span class="name">{{label}}</span><input type="number" inputmode="numeric" data-field="{{name}}" data-kind="number" value="{{value}}"></label>{{/each}}
+      {{/if}}
+      {{#if isText}}
+      {{#each rows}}<label class="pocket5e-remote-row pocket5e-remote-stack"><span class="name">{{label}}</span><input type="text" data-field="{{name}}" data-kind="text" value="{{value}}" autocomplete="off"></label>{{/each}}
+      {{/if}}
+    </div>
+    {{/each}}
+  </div>
+  {{#if hasFooter}}
+  <footer class="pocket5e-targets-foot pocket5e-remote-foot">
+    {{#each footer}}<button type="button" class="pocket5e-btn{{#if primary}} pocket5e-btn-primary{{/if}}" data-action="dlgSubmit" data-value="{{value}}">{{label}}</button>{{/each}}
+  </footer>
+  {{/if}}
+</section>

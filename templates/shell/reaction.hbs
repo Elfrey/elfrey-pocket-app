@@ -1,0 +1,28 @@
+<section class="pocket5e-drawer-panel pocket5e-reaction-panel">
+  <header class="pocket5e-drawer-head">
+    <img src="{{actorImg}}" alt="">
+    <div class="pocket5e-row2-info">
+      <strong>{{localize "POCKET5E.Bridge.ReactionTitle"}}</strong>
+      <small data-countdown>{{localize "POCKET5E.Bridge.ReactionCountdown" seconds=seconds}}</small>
+    </div>
+    <button type="button" class="pocket5e-iconbtn" data-action="close" aria-label="{{localize 'POCKET5E.Shell.Close'}}"><i class="fa-solid fa-xmark"></i></button>
+  </header>
+  <div class="pocket5e-drawer-body pocket5e-reaction-body">
+    {{#if flavor}}<div class="pocket5e-reaction-flavor">{{{flavor}}}</div>{{/if}}
+    <ul class="pocket5e-target-list">
+      {{#each reactions}}
+      <li>
+        <button type="button" class="pocket5e-target-row pocket5e-reaction-row" data-action="react" data-uuid="{{uuid}}">
+          <img src="{{img}}" alt="">
+          <span class="name">{{name}}{{#if item}} <small>· {{item}}</small>{{/if}}{{#if meta}}<small class="meta">{{meta}}</small>{{/if}}</span>
+          {{#if uses}}<small class="disp">{{uses}}</small>{{else}}<span></span>{{/if}}
+          <i class="fa-solid fa-bolt check"></i>
+        </button>
+      </li>
+      {{/each}}
+    </ul>
+  </div>
+  <footer class="pocket5e-targets-foot pocket5e-reaction-foot">
+    <button type="button" class="pocket5e-btn" data-action="noReaction"><i class="fa-solid fa-ban"></i>{{localize "POCKET5E.Bridge.ReactionNone"}}</button>
+  </footer>
+</section>
