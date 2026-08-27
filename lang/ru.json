@@ -178,7 +178,9 @@
       "ShowFar": "Показать всех видимых ({count} вне радиуса)",
       "HideFar": "Скрыть дальних",
       "LongRange": "дальняя дистанция",
-      "OutOfRange": "вне радиуса"
+      "OutOfRange": "вне радиуса",
+      "UnknownCreature": "Неизвестное существо",
+      "Unknown": "Неизвестный"
     },
     "Bridge": {
       "ReactionTitle": "Реакция!",

@@ -178,7 +178,9 @@
       "ShowFar": "Show all visible ({count} out of range)",
       "HideFar": "Hide out-of-range",
       "LongRange": "long range",
-      "OutOfRange": "out of range"
+      "OutOfRange": "out of range",
+      "UnknownCreature": "Unknown Creature",
+      "Unknown": "Unknown"
     },
     "Bridge": {
       "ReactionTitle": "Reaction!",

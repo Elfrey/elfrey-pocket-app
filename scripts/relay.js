@@ -311,17 +311,42 @@ function handleTargets(msg) {
         if ( activity && visible ) range = rangeClass(activity, observer, t, midi);
       }
       tokens.push({
-        uuid: t.document.uuid, name: t.document.name, img: t.document.texture?.src ?? null,
+        uuid: t.document.uuid, name: playerFacingName(t), img: t.document.texture?.src ?? null,
         disposition: t.document.disposition, isSelf, visible,
         distance: Number.isFinite(distance) && (distance >= 0) ? Math.round(distance * 10) / 10 : null,
         range
       });
     }
-    reply({ ok: true, sceneName: canvas.scene.name, units: canvas.scene.grid.units || "", hasObserver: !!observer, tokens });
+    // Players know scenes by their navigation name; the real title may spoil ("Ambush at the bridge").
+    const sceneName = canvas.scene.navName || canvas.scene.name;
+    reply({ ok: true, sceneName, units: canvas.scene.grid.units || "", hasObserver: !!observer, tokens });
   } catch(err) {
     console.warn(`${MODULE_ID} | relay | targets query rejected:`, err);
     reply({ ok: false, error: err?.message ?? String(err) });
   }
+}
+
+/**
+ * The token's name as the players see it: Hide NPC Names (game.hnn) and Anonymous (module api) replace NPC names
+ * on the canvas and in chat; the picker must not leak the real one. Player-owned actors are never renamed.
+ */
+function playerFacingName(token) {
+  const name = token.document.name;
+  const actor = token.actor;
+  if ( !actor || actor.hasPlayerOwner ) return name;
+  if ( game.modules.get("hide-npc-names")?.active && (typeof game.hnn?.getReplacementInfo === "function") ) {
+    try {
+      const info = game.hnn.getReplacementInfo(actor, name);
+      if ( info?.shouldReplace ) return info.replacementName || name;
+    } catch(err) { /* fall through */ }
+  }
+  const anonymous = game.modules.get("anonymous");
+  if ( anonymous?.active && anonymous.api ) {
+    try {
+      if ( !anonymous.api.playersSeeName(actor) ) return anonymous.api.getName(actor) || name;
+    } catch(err) { /* fall through */ }
+  }
+  return name;
 }
 
 /** Sight-blocking walls between two token centres (the vanilla stand-in for midi's canSee). */

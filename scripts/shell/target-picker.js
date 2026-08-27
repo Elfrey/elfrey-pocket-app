@@ -14,6 +14,49 @@ import { queryTargets } from "../relay.js";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const L = key => game.i18n.localize(key);
 
+/* -------------------------------------------- */
+/*  Hidden NPC names without the modules loaded  */
+/* -------------------------------------------- */
+
+/** A world setting of a module the app does not load: raw Setting document → parsed value, or undefined. */
+function worldSetting(key) {
+  try {
+    const raw = game.settings.storage.get("world")?.getSetting?.(key)?.value;
+    return (raw === undefined) ? undefined : JSON.parse(raw);
+  } catch(err) { return undefined; }
+}
+
+const HNN_DEFAULT_HIDE = { hostile: true, neutral: true, friendly: false, secret: true };
+const DISPOSITION_KEY = { [-2]: "secret", [-1]: "hostile", [0]: "neutral", [1]: "friendly" };
+
+/**
+ * The name the player is meant to see for a token — the GM's answer already carries it; this is for the local
+ * fallback list. Mirrors Hide NPC Names (per-disposition world settings + actor flag overrides, numeric token
+ * suffix kept) and Anonymous (flags.anonymous.showName, per-type replacement names).
+ */
+function playerFacingName(tokenDoc) {
+  const name = tokenDoc.name;
+  const actor = tokenDoc.actor;
+  if ( !actor || actor.hasPlayerOwner ) return name;
+  const disposition = DISPOSITION_KEY[actor.prototypeToken?.disposition ?? tokenDoc.disposition] ?? "neutral";
+  if ( game.modules.get("hide-npc-names")?.active ) {
+    const flags = actor.flags?.["hide-npc-names"] ?? {};
+    const hide = flags.nameHiddenOverride ?? worldSetting(`hide-npc-names.hide${disposition.titleCase()}Names`) ?? HNN_DEFAULT_HIDE[disposition];
+    if ( hide ) {
+      let replacement = flags.replacementNameOverride ?? worldSetting(`hide-npc-names.${disposition}NameReplacement`);
+      if ( !replacement || String(replacement).startsWith("HNN.") ) replacement = L("POCKET5E.Targets.UnknownCreature");   // unset, or the module's own i18n key
+      const suffix = name.match(/(\s\(\d+\))$/)?.[1] ?? "";
+      return `${replacement}${suffix}`;
+    }
+  }
+  if ( game.modules.get("anonymous")?.active && !actor.flags?.anonymous?.showName ) {
+    const names = worldSetting("anonymous.names") ?? {};
+    const typeLabel = game.i18n.localize(CONFIG.Actor?.typeLabels?.[actor.type] ?? actor.type);
+    return String(names[actor.type] ?? "").trim() || `${L("POCKET5E.Targets.Unknown")} ${typeLabel}`;
+  }
+  return name;
+}
+
 const DISPOSITION = {
   [-2]: { cls: "secret", key: "Secret" },
   [-1]: { cls: "hostile", key: "Hostile" },
@@ -118,11 +161,11 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     else {
       const scene = TargetPicker.sceneFor(this.actor);
-      sceneName = scene?.name ?? "";
+      sceneName = scene ? (scene.navName || scene.name) : "";
       rows = (scene?.tokens ?? [])
         .filter(t => !t.hidden || game.user.isGM)
         .map(t => this.#row({
-          uuid: t.uuid, name: t.name, img: t.texture?.src || t.actor?.img, disposition: t.disposition,
+          uuid: t.uuid, name: playerFacingName(t), img: t.texture?.src || t.actor?.img, disposition: t.disposition,
           isSelf: t.actorId === this.actor.id
         }));
       noteKey = "POCKET5E.Targets.NoGMAnswer";
