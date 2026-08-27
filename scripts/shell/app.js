@@ -13,7 +13,8 @@ import { MODULE_ID, SETTINGS, MODE } from "../settings.js";
 import {
   performRoll, applyHP, setExhaustion, setDeathSaves, toggleCondition, endConcentration, endTurn, actorSummary,
   setRollMode, useItem, rollActivityAttack, rollActivityDamage, rollActivityFormula, toggleEquipped, toggleAttuned,
-  changeQuantity, updateCurrency, togglePrepared, setSpellSlot, haptic, getRollMode
+  changeQuantity, updateCurrency, togglePrepared, setSpellSlot, haptic, getRollMode,
+  configureUsage, serializeUsage, usageSummary
 } from "../actions.js";
 import { relayEnabled, designatedGM, needsTargets, requestUse } from "../relay.js";
 import { TargetPicker } from "./target-picker.js";
@@ -423,7 +424,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {Item5e} item
    * @param {Activity|null} activity
    * @param {Event} [event]
-   * @returns {Promise<*>}   null when the player dismissed the target picker.
+   * @returns {Promise<*>}   null when the player dismissed the usage dialog or the target picker.
    */
   async useActivity(item, activity, event) {
     activity ??= (item.system?.activities?.size === 1) ? item.system.activities.contents[0] : null;
@@ -432,6 +433,10 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.warn(game.i18n.localize("POCKET5E.Relay.NoGM"));
       return useItem(item, activity);
     }
+    // The dnd5e usage dialog runs here, on the phone: spell level, consumption, concentration. Its result travels
+    // with the request, so the GM's client never has to ask (see PLAN.md, phase 10.2).
+    const config = await configureUsage(activity);
+    if ( config === null ) return null;
     let targetUuids = [];
     if ( needsTargets(activity) ) {
       const picked = await TargetPicker.pick({ actor: this.actor, activity });
@@ -439,9 +444,17 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       targetUuids = picked;
     }
     const { advantage, disadvantage } = this.rollOptions(event);
-    const result = await requestUse(activity, { targetUuids, advantage, disadvantage, rollMode: getRollMode() });
+    const result = await requestUse(activity, {
+      targetUuids, advantage, disadvantage, rollMode: getRollMode(), usage: serializeUsage(config)
+    });
     this.consumeRollMode();
-    ui.notifications.info(game.i18n.localize("POCKET5E.Relay.Sent"));
+    const level = usageSummary(activity, config);
+    const notice = [level
+      ? game.i18n.format("POCKET5E.Relay.SentAtLevel", { level })
+      : game.i18n.localize("POCKET5E.Relay.Sent")];
+    // Placing a template needs the map, so it happens on the GM's screen — say so, or the player waits blindly.
+    if ( config?.create?.measuredTemplate ) notice.push(game.i18n.localize("POCKET5E.Relay.TemplateByGM"));
+    ui.notifications.info(notice.join(" "));
     return result;
   }
 

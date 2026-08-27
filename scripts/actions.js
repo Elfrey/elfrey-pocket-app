@@ -237,6 +237,53 @@ export async function useItem(item, activity=null) {
   return item.use({}, {}, message);
 }
 
+/**
+ * Configuration fields of an ActivityUseConfiguration that describe *what* is being used — the choices the player
+ * makes in the dnd5e usage dialog. Everything else (events, workflows, subjects) is local to the client that runs
+ * the use and is rebuilt there.
+ */
+const USAGE_FIELDS = ["spell", "scaling", "consume", "concentration", "create", "cause", "summons",
+  "enchantmentProfile", "transform", "building", "subsequentActions", "hasConsumption"];
+
+/**
+ * Build the usage configuration for an activity and, when dnd5e would ask, show its usage dialog here: spell slot
+ * (upcasting), resource consumption, concentration, template creation. Nothing is consumed and no message is
+ * created — that happens in the actual use, which may run on another client (see relay.js).
+ * @param {Activity} activity
+ * @returns {Promise<object|null>}   The configuration, or null if the player dismissed the dialog.
+ */
+export async function configureUsage(activity) {
+  const config = activity._prepareUsageConfig({});
+  if ( !activity._requiresConfigurationDialog?.(config) ) return config;
+  const DialogClass = activity.metadata?.usage?.dialog;
+  if ( !DialogClass?.create ) return config;
+  try {
+    return await DialogClass.create(activity, config, {});
+  } catch(err) {
+    if ( err ) console.warn(`${MODULE_ID} |`, err);   // dismissing the dialog rejects with nothing
+    return null;
+  }
+}
+
+/** The parts of a usage configuration that can travel over a socket, as plain data. */
+export function serializeUsage(config) {
+  const out = {};
+  for ( const key of USAGE_FIELDS ) {
+    if ( !(key in (config ?? {})) ) continue;
+    try { out[key] = JSON.parse(JSON.stringify(config[key])); } catch(err) { /* skip what cannot travel */ }
+  }
+  return out;
+}
+
+/** "3rd level" — how the chosen slot differs from the spell's own level, for the "sent to the GM" notice. */
+export function usageSummary(activity, config) {
+  const slot = config?.spell?.slot;
+  if ( !slot || (activity.item?.type !== "spell") ) return "";
+  const level = activity.actor?.system?.spells?.[slot]?.level ?? Number(String(slot).replace("spell", ""));
+  if ( !Number.isFinite(level) || (level <= (activity.item.system.level ?? 0)) ) return "";
+  return loc(CONFIG.DND5E.spellLevels?.[level], `${level}`);
+}
+
 export async function rollActivityAttack(activity, { event, advantage=false, disadvantage=false, fast=false }={}) {
   if ( typeof activity?.rollAttack !== "function" ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoAttack"));
   const config = { event };
