@@ -98,9 +98,11 @@ function patchCore() {
  * setting itself is only a fallback for payloads without that flag.
  */
 function moduleActiveInPayload(data, id) {
+  const P = globalThis.POCKET5E;
   const manifest = (data.modules ?? []).find(m => m.id === id);
   if ( !manifest ) {
-    log(`${id}: not installed in this world`);
+    log(`${id}: not installed in this world (payload lists ${(data.modules ?? []).length} modules)`);
+    P.socketlib = "not installed";
     return null;
   }
   let active = manifest.active;
@@ -113,7 +115,10 @@ function moduleActiveInPayload(data, id) {
       active = false;
     }
   }
-  if ( !active ) log(`${id}: installed but not enabled in this world`);
+  if ( !active ) {
+    log(`${id}: installed but not enabled in this world`);
+    P.socketlib = "not enabled";
+  }
   return active ? manifest : null;
 }
 
@@ -209,12 +214,15 @@ async function boot() {
     for ( const path of paths ) {
       try {
         await import(route(`modules/socketlib/${path}`));
-        log(`socketlib ${socketlibManifest.version ?? ""} loaded (${path})`);
+        P.socketlib = `loaded ${socketlibManifest.version ?? ""} (${path})`;
+        log(`socketlib ${P.socketlib}`);
       } catch(err) {
+        P.socketlib = `import failed: ${err?.message ?? err}`;
         console.warn(`${MODULE_ID} | socketlib not loaded (${path}):`, err?.message ?? err);
       }
     }
   }
+  else P.socketlib ??= "skipped";
 
   globalThis.game = (Game.length >= 4) ? new Game("game", data, sessionId, socket) : new Game("game", data, socket);
   await game.initialize();

@@ -33,25 +33,91 @@ const log = (...args) => console.log(`${MODULE_ID} | bridge |`, ...args);
 /* -------------------------------------------- */
 
 export async function registerBridge() {
-  if ( !globalThis.socketlib ) {
-    log("socketlib not loaded — midi-qol/CPR requests to this player cannot be answered");
-    return;
+  let lib = globalThis.socketlib;
+  if ( lib ) log(`using socketlib (${globalThis.POCKET5E?.socketlib ?? "loaded"})`);
+  else {
+    log(`socketlib unavailable (${globalThis.POCKET5E?.socketlib ?? "unknown"}) — using the built-in compatible transport`);
+    lib = { registerModule: moduleId => MiniSocket.for(moduleId) };
   }
-  const midi = register(MIDI, { chooseReactions, rollAbility, rollAbilityV2: rollAbility, D20Roll: d20Roll });
-  const cpr = register(CPR, {
+  const midi = register(lib, MIDI, { chooseReactions, rollAbility, rollAbilityV2: rollAbility, D20Roll: d20Roll });
+  const cpr = register(lib, CPR, {
     dialog: cprDialog, queuedDialog: cprQueuedDialog, rollItem: cprRollItem,
     remoteRoll, remoteDamageRolls, updateTargets: async () => true
   });
   await Promise.all([midi && loadModuleTranslations(MIDI), cpr && loadModuleTranslations(CPR)]);
 }
 
-function register(moduleId, handlers) {
-  if ( !game.modules.get(moduleId)?.active ) return false;
-  const socket = socketlib.registerModule(moduleId);
+function register(lib, moduleId, handlers) {
+  if ( !game.modules.get(moduleId)?.active ) {
+    log(`${moduleId} is not active in this world — nothing to answer`);
+    return false;
+  }
+  const socket = lib.registerModule(moduleId);
   if ( !socket ) return false;
   for ( const [name, fn] of Object.entries(handlers) ) socket.register(name, fn);
   log(`answering ${moduleId}: ${Object.keys(handlers).join(", ")}`);
   return true;
+}
+
+/* -------------------------------------------- */
+/*  Minimal socketlib-compatible responder      */
+/* -------------------------------------------- */
+
+/** socketlib 1.1.x wire protocol (src/socketlib.js): message types and recipient codes. */
+const SL_TYPE = { COMMAND: 0, REQUEST: 1, RESULT: 3, EXCEPTION: 4, UNREGISTERED: 5 };
+const SL_RECIPIENT = { ONE_GM: 0, ALL_GMS: 1, EVERYONE: 2 };
+
+/**
+ * Answers requests exactly like a SocketlibSocket would, so the requester's socketlib resolves its promise:
+ * { handlerName, args, recipient, id, type } in → { id, result, type: RESULT } out (UNREGISTERED / EXCEPTION on
+ * failure). Only the responder half — the app never *sends* requests through it.
+ */
+class MiniSocket {
+  static #instances = new Map();
+
+  static for(moduleId) {
+    if ( !this.#instances.has(moduleId) ) this.#instances.set(moduleId, new MiniSocket(moduleId));
+    return this.#instances.get(moduleId);
+  }
+
+  #functions = new Map();
+  socketName;
+
+  constructor(moduleId) {
+    this.socketName = `module.${moduleId}`;
+    game.socket.on(this.socketName, this.#onReceived.bind(this));
+  }
+
+  register(name, fn) {
+    if ( typeof fn === "function" ) this.#functions.set(name, fn);
+  }
+
+  #onReceived(message, senderId) {
+    if ( !message || ![SL_TYPE.COMMAND, SL_TYPE.REQUEST].includes(message.type) ) return;
+    const { handlerName, args=[], recipient, id, type } = message;
+    if ( Array.isArray(recipient) ) { if ( !recipient.includes(game.userId) ) return; }
+    else if ( recipient === SL_RECIPIENT.ONE_GM ) { if ( !game.users.activeGM?.isSelf ) return; }
+    else if ( recipient === SL_RECIPIENT.ALL_GMS ) { if ( !game.user.isGM ) return; }
+    else if ( recipient !== SL_RECIPIENT.EVERYONE ) return;
+
+    const emit = data => game.socket.emit(this.socketName, data);
+    const fn = this.#functions.get(handlerName);
+    if ( !fn ) {
+      if ( type === SL_TYPE.REQUEST ) emit({ id, type: SL_TYPE.UNREGISTERED, userId: game.userId });
+      return;
+    }
+    const context = { socketdata: { userId: senderId } };
+    if ( type === SL_TYPE.COMMAND ) {
+      try { fn.call(context, ...args); } catch(err) { console.error(`${MODULE_ID} | bridge | ${handlerName}:`, err); }
+      return;
+    }
+    Promise.resolve().then(() => fn.call(context, ...args))
+      .then(result => emit({ id, result, type: SL_TYPE.RESULT }))
+      .catch(err => {
+        console.error(`${MODULE_ID} | bridge | ${handlerName} failed:`, err);
+        emit({ id, type: SL_TYPE.EXCEPTION, userId: game.userId });
+      });
+  }
 }
 
 /** Merge a module's language files (current language, then English) so its dialog labels and keys render. */
