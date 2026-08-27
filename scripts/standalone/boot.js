@@ -210,10 +210,11 @@ async function boot() {
   //    registers the handlers. Its init hook fires inside game.initialize(), so it must be imported before that.
   const socketlibManifest = moduleActiveInPayload(data, "socketlib");
   if ( socketlibManifest ) {
-    const paths = socketlibManifest.esmodules?.length ? socketlibManifest.esmodules : ["src/socketlib.js"];
+    // The server vends manifest paths already prefixed with the package folder ("modules/socketlib/src/…").
+    const paths = socketlibManifest.esmodules?.length ? socketlibManifest.esmodules : ["modules/socketlib/src/socketlib.js"];
     for ( const path of paths ) {
       try {
-        await import(route(`modules/socketlib/${path}`));
+        await import(route(path.startsWith("modules/") ? path : `modules/socketlib/${path}`));
         P.socketlib = `loaded ${socketlibManifest.version ?? ""} (${path})`;
         log(`socketlib ${P.socketlib}`);
       } catch(err) {
