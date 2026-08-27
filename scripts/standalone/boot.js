@@ -92,17 +92,29 @@ function patchCore() {
   foundry.helpers.DocumentIndex.prototype.index = async function() {};
 }
 
-/** The module's manifest from the world payload if the world has it enabled, else null. */
+/**
+ * The module's manifest from the world payload if the world has it enabled, else null.
+ * The server stamps `active` on every module it sends (world.mjs: active = core.moduleConfiguration[id]); the
+ * setting itself is only a fallback for payloads without that flag.
+ */
 function moduleActiveInPayload(data, id) {
-  try {
-    const manifest = (data.modules ?? []).find(m => m.id === id);
-    if ( !manifest ) return null;
-    const setting = (data.settings ?? []).find(s => s.key === "core.moduleConfiguration");
-    const config = (typeof setting?.value === "string") ? JSON.parse(setting.value) : (setting?.value ?? {});
-    return config[id] === true ? manifest : null;
-  } catch(err) {
+  const manifest = (data.modules ?? []).find(m => m.id === id);
+  if ( !manifest ) {
+    log(`${id}: not installed in this world`);
     return null;
   }
+  let active = manifest.active;
+  if ( typeof active !== "boolean" ) {
+    try {
+      const setting = (data.settings ?? []).find(s => s.key === "core.moduleConfiguration");
+      const config = (typeof setting?.value === "string") ? JSON.parse(setting.value) : (setting?.value ?? {});
+      active = config[id] === true;
+    } catch(err) {
+      active = false;
+    }
+  }
+  if ( !active ) log(`${id}: installed but not enabled in this world`);
+  return active ? manifest : null;
 }
 
 function fail(err) {
@@ -193,9 +205,14 @@ async function boot() {
   //    registers the handlers. Its init hook fires inside game.initialize(), so it must be imported before that.
   const socketlibManifest = moduleActiveInPayload(data, "socketlib");
   if ( socketlibManifest ) {
-    for ( const path of socketlibManifest.esmodules ?? ["src/socketlib.js"] ) {
-      try { await import(route(`modules/socketlib/${path}`)); }
-      catch(err) { console.warn(`${MODULE_ID} | socketlib not loaded (${path}):`, err?.message ?? err); }
+    const paths = socketlibManifest.esmodules?.length ? socketlibManifest.esmodules : ["src/socketlib.js"];
+    for ( const path of paths ) {
+      try {
+        await import(route(`modules/socketlib/${path}`));
+        log(`socketlib ${socketlibManifest.version ?? ""} loaded (${path})`);
+      } catch(err) {
+        console.warn(`${MODULE_ID} | socketlib not loaded (${path}):`, err?.message ?? err);
+      }
     }
   }
 
