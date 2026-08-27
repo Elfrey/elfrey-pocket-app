@@ -1,10 +1,15 @@
 /**
- * TargetPicker — bottom sheet listing the tokens of the current scene so the player can choose targets before a
- * use goes through the GM relay (the phone has no canvas, hence no game.user.targets of its own).
+ * TargetPicker — bottom sheet listing the tokens the player can aim at before a use goes through the GM relay
+ * (the phone has no canvas, hence no game.user.targets of its own).
+ *
+ * Candidates come from the GM (relay.js queryTargets): what the character's token can see and how far it is,
+ * judged against the activity's range on the GM's canvas. Out-of-range tokens are hidden behind a toggle; unseen
+ * tokens are never listed. Without an answer from the GM the scene's tokens are listed unjudged.
  * Resolves with TokenDocument uuids ([] = deliberately no target) or null when dismissed.
  */
 import { MODULE_ID } from "../settings.js";
 import { activeCombat, fmtLabel, loc } from "../actions.js";
+import { queryTargets } from "../relay.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const L = key => game.i18n.localize(key);
@@ -27,12 +32,14 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {Activity} options.activity
    * @returns {Promise<string[]|null>}
    */
-  static pick({ actor, activity }) {
+  static async pick({ actor, activity }) {
     this.#instance?.close();
     const app = this.#instance = new this();
     app.actor = actor;
     app.activity = activity;
     const promise = new Promise(resolve => { app.#resolve = resolve; });
+    try { app.remote = await queryTargets(actor, activity); } catch(err) { app.remote = null; }
+    if ( app !== TargetPicker.#instance ) return null;      // superseded while waiting
     app.render({ force: true });
     return promise;
   }
@@ -45,6 +52,7 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       close: TargetPicker.#onCancel,
       toggleTarget: TargetPicker.#onToggle,
+      toggleFar: TargetPicker.#onToggleFar,
       noTargets: TargetPicker.#onNone,
       confirmTargets: TargetPicker.#onConfirm
     }
@@ -59,6 +67,10 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
   actor;
   /** @type {Activity} */
   activity;
+  /** The GM's answer (relay.js queryTargets) or null. */
+  remote = null;
+  /** Show tokens the GM judged out of range too. */
+  showFar = false;
   #selected = new Set();
   #resolve = null;
 
@@ -85,38 +97,67 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const activity = this.activity;
-    const scene = TargetPicker.sceneFor(this.actor);
     const target = activity.target ?? {};
-
-    const tokens = (scene?.tokens ?? [])
-      .filter(t => !t.hidden || game.user.isGM)
-      .map(t => {
-        const d = DISPOSITION[t.disposition] ?? DISPOSITION[0];
-        return {
-          uuid: t.uuid,
-          name: t.name,
-          img: t.texture?.src || t.actor?.img || "icons/svg/mystery-man.svg",
-          disposition: d.cls,
-          dispositionLabel: L(`POCKET5E.Targets.${d.key}`),
-          isSelf: t.actorId === this.actor.id,
-          selected: this.#selected.has(t.uuid)
-        };
-      })
-      .sort((a, b) => (ORDER[a.disposition] - ORDER[b.disposition]) || a.name.localeCompare(b.name, game.i18n.lang));
-
-    const hint = target.template?.type
+    const rangeHint = fmtLabel(activity.labels?.range);
+    const targetHint = target.template?.type
       ? L("POCKET5E.Targets.Area")
       : (fmtLabel(activity.labels?.target) || loc(CONFIG.DND5E.individualTargetTypes?.[target.affects?.type]?.label, ""));
 
+    let rows, sceneName, judged = false, farCount = 0, noteKey = null;
+    if ( this.remote?.tokens ) {
+      judged = this.remote.hasObserver;
+      sceneName = this.remote.sceneName;
+      const units = this.remote.units;
+      const all = this.remote.tokens
+        .filter(t => t.visible || t.isSelf)
+        .map(t => this.#row(t, { distance: t.distance, units, range: t.range }));
+      const near = all.filter(r => !r.far);
+      farCount = all.length - near.length;
+      rows = this.showFar ? all : near;
+      if ( !judged ) noteKey = "POCKET5E.Targets.NoToken";
+    }
+    else {
+      const scene = TargetPicker.sceneFor(this.actor);
+      sceneName = scene?.name ?? "";
+      rows = (scene?.tokens ?? [])
+        .filter(t => !t.hidden || game.user.isGM)
+        .map(t => this.#row({
+          uuid: t.uuid, name: t.name, img: t.texture?.src || t.actor?.img, disposition: t.disposition,
+          isSelf: t.actorId === this.actor.id
+        }));
+      noteKey = "POCKET5E.Targets.NoGMAnswer";
+    }
+    rows.sort((a, b) => (ORDER[a.disposition] - ORDER[b.disposition]) || a.name.localeCompare(b.name, game.i18n.lang));
+
     context.name = activity.name?.trim() || activity.item.name;
-    context.item = activity.item.name;
     context.img = activity.img || activity.item.img;
-    context.hint = hint;
-    context.scene = scene?.name ?? "";
-    context.tokens = tokens;
-    context.empty = !tokens.length;
+    context.hint = [targetHint, rangeHint].filter(Boolean).join(" · ");
+    context.scene = sceneName;
+    context.judged = judged;
+    context.note = noteKey ? L(noteKey) : "";
+    context.tokens = rows;
+    context.empty = !rows.length;
+    context.emptyText = L(judged && !this.showFar && farCount ? "POCKET5E.Targets.NoneInRange" : "POCKET5E.Targets.Empty");
+    context.farCount = farCount;
+    context.showFar = this.showFar;
     context.count = this.#selected.size;
     return context;
+  }
+
+  #row(t, { distance=null, units="", range=null }={}) {
+    const d = DISPOSITION[t.disposition] ?? DISPOSITION[0];
+    return {
+      uuid: t.uuid,
+      name: t.name,
+      img: t.img || "icons/svg/mystery-man.svg",
+      disposition: d.cls,
+      dispositionLabel: L(`POCKET5E.Targets.${d.key}`),
+      isSelf: !!t.isSelf,
+      selected: this.#selected.has(t.uuid),
+      distance: (distance !== null) ? `${distance} ${units}`.trim() : "",
+      far: range === "out",
+      long: range === "long"
+    };
   }
 
   /** @override */
@@ -148,6 +189,11 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
       confirm.disabled = !this.#selected.size;
       confirm.querySelector("span").textContent = `${L("POCKET5E.Targets.Use")} (${this.#selected.size})`;
     }
+  }
+
+  static #onToggleFar() {
+    this.showFar = !this.showFar;
+    this.render();
   }
 
   static #onNone() {

@@ -12,6 +12,12 @@
  *   GM    → { type: "useResult", id, ok: true,  stage: "accepted" }   validated, execution started
  *   GM    → { type: "useResult", id, ok: true,  stage: "done" }       workflow finished (reactions wait for this)
  *   GM    → { type: "useResult", id, ok: false, stage, error }        rejected, or failed during execution
+ *   phone → { type: "targets", v, id, userId, gmId, actorUuid, itemId?, activityId? }
+ *   GM    → { type: "targetsResult", id, ok, tokens: [{ uuid, name, img, disposition, isSelf, visible, distance,
+ *             range: "normal"|"long"|"out"|null }], units, sceneName, hasObserver }
+ *           — candidates for the target picker, judged on the GM's canvas: what the character's token can see
+ *             (MidiQOL.canSee, else a wall check) and how far / whether within the activity's range
+ *             (MidiQOL.checkActivityRange, else dnd5e range fields against the grid measurement).
  *
  * Only the designated GM (game.users.activeGM — the same answer on every client) executes, so two GMs never
  * double-cast. The GM validates ownership, resolves the targets on its own canvas and calls
@@ -80,11 +86,11 @@ export function registerRelayClient() {
 }
 
 function onClientMessage(msg) {
-  if ( msg?.type !== "useResult" ) return;
+  if ( !["useResult", "targetsResult"].includes(msg?.type) ) return;
   const entry = pending.get(msg.id);
   if ( !entry ) {
     // A failure reported after the request was already answered (the workflow itself broke): just tell the player.
-    if ( (msg.ok === false) && msg.error && (msg.userId === game.user.id) ) ui.notifications.warn(msg.error);
+    if ( (msg.type === "useResult") && (msg.ok === false) && msg.error && (msg.userId === game.user.id) ) ui.notifications.warn(msg.error);
     return;
   }
   if ( !msg.ok ) {
@@ -156,6 +162,35 @@ export async function requestUse(activity, { item, targetUuids=[], advantage=fal
   return result;
 }
 
+/**
+ * Ask the designated GM which tokens the character can target right now: visibility and range are judged on the
+ * GM's canvas (the phone has none). Resolves with the reply, or null when no GM / no answer in time.
+ * @param {Actor} actor
+ * @param {Activity|null} [activity]
+ * @param {object} [options]
+ * @param {number} [options.timeoutMs]
+ */
+export async function queryTargets(actor, activity=null, { timeoutMs=4000 }={}) {
+  const gm = designatedGM();
+  if ( !gm || !actor ) return null;
+  const id = foundry.utils.randomID();
+  const request = {
+    type: "targets", v: RELAY_VERSION, id, userId: game.user.id, gmId: gm.id,
+    actorUuid: actor.uuid, itemId: activity?.item?.id ?? null, activityId: activity?.id ?? null
+  };
+  const result = new Promise(resolve => {
+    const timer = setTimeout(() => { pending.delete(id); resolve(null); }, timeoutMs);
+    pending.set(id, { resolve, reject: () => { pending.delete(id); clearTimeout(timer); resolve(null); }, timer, awaitCompletion: false });
+  });
+  game.socket.emit(RELAY_CHANNEL, request);
+  const reply = await result;
+  if ( reply && (reply.ok === false) ) {
+    log("targets query refused:", reply.error);
+    return null;
+  }
+  return reply;
+}
+
 /* -------------------------------------------- */
 /*  GM side (regular /game client)              */
 /* -------------------------------------------- */
@@ -164,6 +199,7 @@ export function registerRelayGM() {
   if ( !game.user.isGM ) return;
   game.socket.on(RELAY_CHANNEL, msg => {
     if ( msg?.type === "use" ) handleUse(msg);
+    else if ( msg?.type === "targets" ) handleTargets(msg);
   });
   log(`GM handler ready (midi-qol ${globalThis.MidiQOL ? "present" : "absent"})`);
 }
@@ -243,6 +279,86 @@ async function handleUse(msg) {
     console.error(`${MODULE_ID} | relay | use failed:`, err);
     reply({ ok: false, stage: "failed", error: game.i18n.format("POCKET5E.Relay.Failed", { error: err?.message ?? String(err) }) });
   }
+}
+
+/**
+ * Target candidates for the phone's picker, judged from the character's token on the GM's viewed scene.
+ * Hidden tokens are never listed. Without a token of the character on the scene, everything is listed unjudged.
+ */
+function handleTargets(msg) {
+  if ( !addressedToMe(msg) ) return;
+  const reply = data => game.socket.emit(RELAY_CHANNEL, { type: "targetsResult", id: msg.id, userId: msg.userId, ...data });
+  try {
+    const user = game.users.get(msg.userId);
+    const actor = resolveActor(msg.actorUuid);
+    if ( !user || !actor?.testUserPermission(user, "OWNER") ) throw new Error(L("POCKET5E.Relay.Denied"));
+    if ( !canvas?.ready || !canvas.scene ) throw new Error(L("POCKET5E.Relay.NoScene"));
+    const item = msg.itemId ? actor.items.get(msg.itemId) : null;
+    const activity = (item && msg.activityId) ? (item.system?.activities?.get(msg.activityId) ?? null) : null;
+    const observer = canvas.tokens.placeables.find(t => (t.actor === actor) || (t.document.actorId === actor.id)) ?? null;
+    const midi = globalThis.MidiQOL;
+
+    const tokens = [];
+    for ( const t of canvas.tokens.placeables ) {
+      if ( t.document.hidden ) continue;
+      const isSelf = t === observer;
+      let visible = true, distance = null, range = null;
+      if ( observer && !isSelf ) {
+        visible = (typeof midi?.canSee === "function") ? !!midi.canSee(observer, t) : hasLineOfSight(observer, t);
+        distance = (typeof midi?.computeDistance === "function")
+          ? midi.computeDistance(observer, t, { wallsBlock: false })
+          : canvas.grid.measurePath([observer.center, t.center]).distance;
+        if ( activity && visible ) range = rangeClass(activity, observer, t, midi);
+      }
+      tokens.push({
+        uuid: t.document.uuid, name: t.document.name, img: t.document.texture?.src ?? null,
+        disposition: t.document.disposition, isSelf, visible,
+        distance: Number.isFinite(distance) && (distance >= 0) ? Math.round(distance * 10) / 10 : null,
+        range
+      });
+    }
+    reply({ ok: true, sceneName: canvas.scene.name, units: canvas.scene.grid.units || "", hasObserver: !!observer, tokens });
+  } catch(err) {
+    console.warn(`${MODULE_ID} | relay | targets query rejected:`, err);
+    reply({ ok: false, error: err?.message ?? String(err) });
+  }
+}
+
+/** Sight-blocking walls between two token centres (the vanilla stand-in for midi's canSee). */
+function hasLineOfSight(a, b) {
+  const backend = CONFIG.Canvas?.polygonBackends?.sight;
+  if ( typeof backend?.testCollision !== "function" ) return true;
+  try { return !backend.testCollision(a.center, b.center, { type: "sight", mode: "any" }); }
+  catch(err) { return true; }
+}
+
+/**
+ * "normal" | "long" (disadvantage range) | "out" | null (the activity has no range to judge). midi's own check
+ * when present — the same verdict the workflow will apply — else dnd5e's range fields against the grid measurement.
+ */
+function rangeClass(activity, observer, target, midi) {
+  if ( typeof midi?.checkActivityRange === "function" ) {
+    try {
+      const result = midi.checkActivityRange(activity, observer, new Set([target]), false)?.result;
+      if ( result === "normal" ) return "normal";
+      if ( result === "dis" ) return "long";
+      if ( result === "fail" ) return "out";
+    } catch(err) { /* fall through to the vanilla check */ }
+  }
+  const rg = activity.range;
+  if ( !rg ) return null;
+  let range = Number(rg.value || rg.reach || 0);
+  let long = Number(rg.long || 0);
+  if ( rg.units === "touch" ) {
+    range = Number(activity.item?.system?.range?.reach) || canvas.dimensions?.distance || 5;
+    long = 0;
+  }
+  if ( !range && !long ) return null;                       // self / any / special / unset
+  if ( long && (long < range) ) long = range;
+  const d = canvas.grid.measurePath([observer.center, target.center]).distance;
+  if ( d <= range ) return "normal";
+  if ( long && (d <= long) ) return "long";
+  return "out";
 }
 
 /** "Actor.X" or a token uuid → the Actor. */

@@ -8,22 +8,26 @@
     <button type="button" class="pocket5e-iconbtn" data-action="close" aria-label="{{localize 'POCKET5E.Shell.Close'}}"><i class="fa-solid fa-xmark"></i></button>
   </header>
   <div class="pocket5e-drawer-body pocket5e-targets-body">
-    {{#if scene}}<p class="pocket5e-line pocket5e-muted">{{localize "POCKET5E.Targets.Scene"}}: {{scene}}</p>{{/if}}
+    {{#if scene}}<p class="pocket5e-line pocket5e-muted">{{localize "POCKET5E.Targets.Scene"}}: {{scene}}{{#if judged}} · {{localize "POCKET5E.Targets.Judged"}}{{/if}}</p>{{/if}}
+    {{#if note}}<p class="pocket5e-line pocket5e-muted">{{note}}</p>{{/if}}
     {{#if empty}}
-    <div class="pocket5e-placeholder"><i class="fa-solid fa-crosshairs"></i><p class="pocket5e-muted">{{localize "POCKET5E.Targets.Empty"}}</p></div>
+    <div class="pocket5e-placeholder"><i class="fa-solid fa-crosshairs"></i><p class="pocket5e-muted">{{emptyText}}</p></div>
     {{else}}
     <ul class="pocket5e-target-list">
       {{#each tokens}}
       <li>
-        <button type="button" class="pocket5e-target-row {{disposition}}{{#if selected}} on{{/if}}" data-action="toggleTarget" data-uuid="{{uuid}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}">
+        <button type="button" class="pocket5e-target-row {{disposition}}{{#if selected}} on{{/if}}{{#if far}} far{{/if}}{{#if long}} long{{/if}}" data-action="toggleTarget" data-uuid="{{uuid}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}">
           <img src="{{img}}" alt="">
-          <span class="name">{{name}}{{#if isSelf}} <small>{{localize "POCKET5E.Targets.Self"}}</small>{{/if}}</span>
+          <span class="name">{{name}}{{#if isSelf}} <small>{{localize "POCKET5E.Targets.Self"}}</small>{{/if}}{{#if distance}}<small class="dist">{{distance}}{{#if long}} · {{localize "POCKET5E.Targets.LongRange"}}{{/if}}{{#if far}} · {{localize "POCKET5E.Targets.OutOfRange"}}{{/if}}</small>{{/if}}</span>
           <small class="disp">{{dispositionLabel}}</small>
           <i class="fa-solid check {{#if selected}}fa-square-check{{else}}fa-square{{/if}}"></i>
         </button>
       </li>
       {{/each}}
     </ul>
+    {{/if}}
+    {{#if farCount}}
+    <button type="button" class="pocket5e-btn pocket5e-targets-far" data-action="toggleFar"><i class="fa-solid {{#if showFar}}fa-eye-slash{{else}}fa-eye{{/if}}"></i>{{#if showFar}}{{localize "POCKET5E.Targets.HideFar"}}{{else}}{{localize "POCKET5E.Targets.ShowFar" count=farCount}}{{/if}}</button>
     {{/if}}
   </div>
   <footer class="pocket5e-targets-foot">

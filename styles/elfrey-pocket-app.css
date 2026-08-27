@@ -1359,6 +1359,11 @@ body.pocket5e-standalone #notifications {
 .pocket5e-target-row.friendly .disp { color: var(--pocket5e-heal); }
 .pocket5e-target-row .check { font-size: 1.25rem; color: var(--pocket5e-muted); text-align: center; }
 .pocket5e-target-row.on .check { color: var(--pocket5e-accent); }
+.pocket5e-target-row .name .dist { display: block; color: var(--pocket5e-muted); font-weight: 400; font-size: 0.75rem; }
+.pocket5e-target-row.long .name .dist { color: var(--pocket5e-accent); }
+.pocket5e-target-row.far { opacity: 0.55; }
+.pocket5e-target-row.far .name .dist { color: var(--pocket5e-danger); }
+.pocket5e-targets-far { align-self: center; font-size: 0.85rem; min-height: 36px; }
 .pocket5e-targets-foot {
   display: grid;
   grid-template-columns: auto 1fr;

@@ -156,7 +156,8 @@
       "NotFound": "The item or activity was not found on the GM's side.",
       "SceneMismatch": "The GM is viewing another scene — the chosen targets are not on it.",
       "Failed": "The GM's client could not use the item: {error}",
-      "CompleteTimeout": "The GM's client did not finish the action in time."
+      "CompleteTimeout": "The GM's client did not finish the action in time.",
+      "NoScene": "The GM has no scene open."
     },
     "Targets": {
       "Title": "Targets",
@@ -169,7 +170,15 @@
       "Hostile": "Enemy",
       "Neutral": "Neutral",
       "Friendly": "Ally",
-      "Secret": "Secret"
+      "Secret": "Secret",
+      "Judged": "visible and in range, as seen from your token",
+      "NoToken": "Your character has no token on the GM's scene — everything is listed, unchecked.",
+      "NoGMAnswer": "The GM did not answer — listing the scene without checking sight or range.",
+      "NoneInRange": "No visible creature within range.",
+      "ShowFar": "Show all visible ({count} out of range)",
+      "HideFar": "Hide out-of-range",
+      "LongRange": "long range",
+      "OutOfRange": "out of range"
     },
     "Bridge": {
       "ReactionTitle": "Reaction!",
