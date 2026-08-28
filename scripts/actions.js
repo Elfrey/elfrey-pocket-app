@@ -246,6 +246,21 @@ const USAGE_FIELDS = ["spell", "scaling", "consume", "concentration", "create", 
   "enchantmentProfile", "transform", "building", "subsequentActions", "hasConsumption"];
 
 /**
+ * Which activity does a tap on an item mean? One usable activity — that one; several — dnd5e's own choice
+ * dialog, here on the phone; none — null, and the caller falls back to the item's chat card.
+ * @param {Item5e} item
+ * @returns {Promise<Activity|null|undefined>}   null = nothing usable, undefined = the player dismissed the choice.
+ */
+export async function chooseActivity(item) {
+  const usable = item.system?.activities?.filter(a => a.canUse) ?? [];
+  if ( !usable.length ) return null;
+  if ( usable.length === 1 ) return usable[0];
+  const DialogClass = globalThis.dnd5e?.applications?.activity?.ActivityChoiceDialog;
+  if ( !DialogClass?.create ) return usable[0];
+  return (await DialogClass.create(item)) ?? undefined;
+}
+
+/**
  * Build the usage configuration for an activity and, when dnd5e would ask, show its usage dialog here: spell slot
  * (upcasting), resource consumption, concentration, template creation. Nothing is consumed and no message is
  * created — that happens in the actual use, which may run on another client (see relay.js).

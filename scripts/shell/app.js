@@ -14,7 +14,7 @@ import {
   performRoll, applyHP, setExhaustion, setDeathSaves, toggleCondition, endConcentration, endTurn, actorSummary,
   setRollMode, useItem, rollActivityAttack, rollActivityDamage, rollActivityFormula, toggleEquipped, toggleAttuned,
   changeQuantity, updateCurrency, togglePrepared, setSpellSlot, haptic, getRollMode,
-  configureUsage, serializeUsage, usageSummary, fmtLabel, usesText, loc
+  configureUsage, serializeUsage, usageSummary, chooseActivity, fmtLabel, usesText, loc
 } from "../actions.js";
 import { relayEnabled, designatedGM, needsTargets, requestUse } from "../relay.js";
 import { TargetPicker } from "./target-picker.js";
@@ -460,7 +460,12 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {Promise<*>}   null when the player dismissed the usage dialog or the target picker.
    */
   async useActivity(item, activity, event) {
-    activity ??= (item.system?.activities?.size === 1) ? item.system.activities.contents[0] : null;
+    // Rows outside "Favorites" and "Actions" name an item, not an activity: resolve it the way dnd5e would —
+    // one usable activity is used straight away, several open the choice dialog here on the phone.
+    if ( !activity ) {
+      activity = await chooseActivity(item);
+      if ( activity === undefined ) return null;                 // the player closed the choice dialog
+    }
     if ( !activity || !relayEnabled() ) return useItem(item, activity);
     if ( !designatedGM() ) {
       ui.notifications.warn(game.i18n.localize("POCKET5E.Relay.NoGM"));
