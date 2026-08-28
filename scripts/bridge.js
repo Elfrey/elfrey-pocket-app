@@ -14,7 +14,7 @@
  */
 import { MODULE_ID } from "./settings.js";
 import { haptic, configureUsage, serializeUsage } from "./actions.js";
-import { requestUse, relayEnabled, designatedGM } from "./relay.js";
+import { requestUse, relayEnabled, designatedGM, RELAY_CHANNEL } from "./relay.js";
 import { ReactionPicker } from "./shell/reaction-picker.js";
 import { RemoteDialog } from "./shell/remote-dialog.js";
 
@@ -39,6 +39,11 @@ export async function registerBridge() {
     log(`socketlib unavailable (${globalThis.POCKET5E?.socketlib ?? "unknown"}) — using the built-in compatible transport`);
     lib = { registerModule: moduleId => MiniSocket.for(moduleId) };
   }
+  // CPR questions raised inside a relayed use reach the phone over our own channel (relay.js patches DialogApp).
+  game.socket.on(RELAY_CHANNEL, msg => {
+    if ( (msg?.type === "dialog") && (msg.userId === game.user.id) ) forwardedDialog(msg);
+  });
+
   const midi = register(lib, MIDI, { chooseReactions, rollAbility, rollAbilityV2: rollAbility, D20Roll: d20Roll });
   const cpr = register(lib, CPR, {
     dialog: cprDialog, queuedDialog: cprQueuedDialog, rollItem: cprRollItem,
@@ -287,6 +292,18 @@ async function d20Roll(params={}) {
 /* -------------------------------------------- */
 /*  Chris's Premades                            */
 /* -------------------------------------------- */
+
+/** A dialog the GM's client raised while running this player's use — answered here, in the same shape CPR expects. */
+async function forwardedDialog(msg) {
+  const [title, content, inputs, buttons, config] = msg.args ?? [];
+  let result = null;
+  try {
+    result = await cprDialog(title, content, inputs ?? [], buttons, config ?? {});
+  } catch(err) {
+    console.error(`${MODULE_ID} | bridge | forwarded dialog failed:`, err);
+  }
+  game.socket.emit(RELAY_CHANNEL, { type: "dialogResult", id: msg.id, result });
+}
 
 /** CPR's DialogApp.dialog(title, content, inputs, buttons, config) rendered as a bottom sheet; same result shape. */
 async function cprDialog(title, content, inputs=[], buttons, config={}) {

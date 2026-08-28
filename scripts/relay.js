@@ -13,6 +13,8 @@
  *   GM    → { type: "useResult", id, ok: true,  stage: "done" }       workflow finished (reactions wait for this)
  *   GM    → { type: "useResult", id, ok: false, stage, error }        rejected, or failed during execution
  *   phone → { type: "targets", v, id, userId, gmId, actorUuid, itemId?, activityId? }
+ *   GM    → { type: "dialog", id, userId, args }        a CPR dialog raised while running that player's use
+ *   phone → { type: "dialogResult", id, result }        its answer, in CPR's own result shape
  *   GM    → { type: "targetsResult", id, ok, tokens: [{ uuid, name, img, disposition, isSelf, visible, distance,
  *             range: "normal"|"long"|"out"|null }], units, sceneName, hasObserver }
  *           — candidates for the target picker, judged on the GM's canvas: what the character's token can see
@@ -35,6 +37,8 @@ export const RELAY_VERSION = 2;
 const ACCEPT_TIMEOUT_MS = 15_000;
 /** How long a caller that asked for completion waits for the workflow to finish (saves, reactions of others…). */
 const COMPLETE_TIMEOUT_MS = 180_000;
+/** How long the GM waits for the player to answer a forwarded CPR dialog before showing it on their own screen. */
+const DIALOG_TIMEOUT_MS = 120_000;
 
 const L = key => game.i18n.localize(key);
 const log = (...args) => console.log(`${MODULE_ID} | relay |`, ...args);
@@ -200,8 +204,76 @@ export function registerRelayGM() {
   game.socket.on(RELAY_CHANNEL, msg => {
     if ( msg?.type === "use" ) handleUse(msg);
     else if ( msg?.type === "targets" ) handleTargets(msg);
+    else if ( msg?.type === "dialogResult" ) resolveDialog(msg);
   });
-  log(`GM handler ready (midi-qol ${globalThis.MidiQOL ? "present" : "absent"})`);
+  patchPremadeDialogs();
+  log(`GM handler ready (midi-qol ${globalThis.MidiQOL ? "present" : "absent"}`
+    + `, chris-premades ${globalThis.chrisPremades ? "present" : "absent"})`);
+}
+
+/* -------------------------------------------- */
+/*  CPR dialogs raised on the GM's screen        */
+/* -------------------------------------------- */
+
+/** requestId → userId, for the relayed uses running right now. */
+const running = new Map();
+/** dialogId → { resolve, timer } for dialogs waiting on a player's answer. */
+const dialogs = new Map();
+const DIALOG_UNANSWERED = Symbol("unanswered");
+
+/**
+ * Whose phone should answer a dialog raised right now? Only when exactly one relayed use is in flight: with two
+ * players casting at once there is no way to tell whose macro is asking, and a question sent to the wrong player
+ * is worse than one shown to the GM.
+ */
+function currentRelayUser() {
+  if ( running.size !== 1 ) return null;
+  const userId = running.values().next().value;
+  return game.users.get(userId)?.active ? userId : null;
+}
+
+/**
+ * Chris's Premades asks its questions on whichever client runs the workflow — with the relay that is the GM, so
+ * a player casting Hex from their phone saw nothing while the GM's screen asked which ability to curse. Every
+ * CPR dialog funnels through chrisPremades.DialogApp.dialog, so while a relayed use is running it is forwarded
+ * to the player who asked for it. Unanswered (or unroutable) dialogs still open on the GM's screen.
+ */
+function patchPremadeDialogs() {
+  const DialogApp = globalThis.chrisPremades?.DialogApp;
+  if ( !DialogApp?.dialog || DialogApp.pocket5ePatched ) return;
+  const original = DialogApp.dialog.bind(DialogApp);
+  DialogApp.dialog = async function(...args) {
+    const userId = currentRelayUser();
+    if ( !userId ) return original(...args);
+    const answer = await askPlayer(userId, args);
+    if ( answer !== DIALOG_UNANSWERED ) return answer;
+    log("player did not answer the dialog — asking here instead");
+    return original(...args);
+  };
+  DialogApp.pocket5ePatched = true;
+  log("chris-premades dialogs are forwarded to the requesting player");
+}
+
+function askPlayer(userId, args) {
+  let payload;
+  try { payload = JSON.parse(JSON.stringify(args)); } catch(err) { return Promise.resolve(DIALOG_UNANSWERED); }
+  const id = foundry.utils.randomID();
+  return new Promise(resolve => {
+    const timer = setTimeout(() => {
+      dialogs.delete(id);
+      resolve(DIALOG_UNANSWERED);
+    }, DIALOG_TIMEOUT_MS);
+    dialogs.set(id, { resolve, timer });
+    game.socket.emit(RELAY_CHANNEL, { type: "dialog", v: RELAY_VERSION, id, userId, args: payload });
+  });
+}
+
+function resolveDialog(msg) {
+  const entry = dialogs.get(msg.id);
+  if ( !entry ) return;                       // already given up on and shown here
+  clearTimeout(entry.timer);
+  dialogs.delete(msg.id);
+  entry.resolve(msg.result ?? null);
 }
 
 /** Is this GM the one that should execute `msg`? The addressee, or the current designated GM if the addressee left. */
@@ -250,6 +322,7 @@ async function handleUse(msg) {
   const dialog = foundry.utils.mergeObject({ configure: false }, msg.dialog ?? {});
 
   try {
+    running.set(msg.id, user.id);   // questions the workflow raises go back to this player (patchPremadeDialogs)
     if ( globalThis.MidiQOL?.completeActivityUse ) {
       const usage = foundry.utils.mergeObject(foundry.utils.deepClone(msg.usage ?? {}), {
         midiOptions: {
@@ -278,6 +351,8 @@ async function handleUse(msg) {
   } catch(err) {
     console.error(`${MODULE_ID} | relay | use failed:`, err);
     reply({ ok: false, stage: "failed", error: game.i18n.format("POCKET5E.Relay.Failed", { error: err?.message ?? String(err) }) });
+  } finally {
+    running.delete(msg.id);
   }
 }
 
