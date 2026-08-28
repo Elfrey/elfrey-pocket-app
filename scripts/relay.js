@@ -260,7 +260,11 @@ function patchMidiPlayerRolls() {
         options = {
           ...options,
           playerInfo: { ...options.playerInfo, playerChat: false },
-          moduleFlags: { ...(options.moduleFlags ?? {}), playerMonksTB: false, playerFlashTB: false, playerEpicRolls: false }
+          moduleFlags: { ...(options.moduleFlags ?? {}), playerMonksTB: false, playerFlashTB: false, playerEpicRolls: false },
+          // Midi only shows the roll dialog for its "…with dialog" modes; in the others the player's client rolls
+          // silently. A save that happens without the player touching anything is not what a prompt means, so
+          // the app always gets the dialog and the player presses the button themselves.
+          displayOptions: { ...(options.displayOptions ?? {}), showRollDialog: true }
         };
       }
       return original.call(this, options);

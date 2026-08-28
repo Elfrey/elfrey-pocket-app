@@ -253,19 +253,20 @@ function legacySaveDetails(data) {
   };
 }
 
-/** Run a dnd5e roll; if its configuration dialog is still open after `seconds`, close it and roll without one. */
+/**
+ * Run a dnd5e roll behind its configuration dialog. The GM's workflow is waiting, so the roll must happen either
+ * way: if the dialog is still open after `seconds` it is closed, and if it produced nothing — closed, dismissed
+ * or timed out — the roll is made without it. A save cannot be avoided by ignoring the prompt.
+ */
 async function withDialogTimeout(rollFn, dialog, seconds) {
   if ( !dialog.configure ) return rollFn();
-  let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; closeRollDialogs(); }, seconds * 1000);
+  const timer = setTimeout(() => closeRollDialogs(), seconds * 1000);
   try {
     const result = await rollFn();
     const empty = !result || (Array.isArray(result) && !result.length);
-    if ( empty && timedOut ) {
-      dialog.configure = false;
-      return rollFn();
-    }
-    return result;
+    if ( !empty ) return result;
+    dialog.configure = false;
+    return rollFn();
   } finally {
     clearTimeout(timer);
   }
