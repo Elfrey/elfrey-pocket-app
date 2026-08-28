@@ -14,7 +14,7 @@ import {
   performRoll, applyHP, setExhaustion, setDeathSaves, toggleCondition, endConcentration, endTurn, actorSummary,
   setRollMode, useItem, rollActivityAttack, rollActivityDamage, rollActivityFormula, toggleEquipped, toggleAttuned,
   changeQuantity, updateCurrency, togglePrepared, setSpellSlot, haptic, getRollMode,
-  configureUsage, serializeUsage, usageSummary
+  configureUsage, serializeUsage, usageSummary, fmtLabel, usesText, loc
 } from "../actions.js";
 import { relayEnabled, designatedGM, needsTargets, requestUse } from "../relay.js";
 import { TargetPicker } from "./target-picker.js";
@@ -39,6 +39,25 @@ const T = `modules/${MODULE_ID}/templates`;
 const TAB = { classes: ["tab", "pocket5e-tab"], scrollable: [""] };
 const L = key => game.i18n.localize(key);
 const HP_MODE_LABEL = { damage: "POCKET5E.Overview.Damage", heal: "POCKET5E.Overview.Heal", temp: "POCKET5E.Overview.TempHP" };
+/** Ceiling for the descriptions stored with a snapshot, and for one of them (a sheet is normally far under it). */
+const SNAPSHOT_TEXT_BUDGET = 1_500_000;
+const SNAPSHOT_TEXT_MAX = 24_000;
+
+/**
+ * Descriptions are stored as written, minus the markup only Foundry's enricher understands: without game.i18n,
+ * documents or CONFIG there is nothing to resolve @UUID links or inline rolls against, and the raw codes would
+ * be shown to the player. The live card, once the world is up, shows the fully enriched text.
+ */
+function plainDescription(value) {
+  return String(value ?? "")
+    .replace(/@(?:UUID|Embed)\[[^\]]*\]\{([^}]*)\}/g, "$1")
+    .replace(/@(?:UUID|Embed)\[[^\]]*\]/g, "")
+    .replace(/&(?:Reference|Lookup)\[[^\]]*\]\{([^}]*)\}/g, "$1")
+    .replace(/&(?:Reference|Lookup)\[([^\]]*)\]/g, "$1")
+    .replace(/\[\[\/?[a-z]*\s*([^\]]*)\]\]\{([^}]*)\}/gi, "$2")
+    .replace(/\[\[\/?[a-z]*\s*([^\]]*)\]\]/gi, "$1")
+    .trim();
+}
 
 export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor({ actor, onSwitchCharacter, ...options }={}) {
@@ -532,18 +551,64 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       await writeSnapshot({
         key: snapshotKey(game.world.id, game.user.id, this.actor.id),
+        details: this.#snapshotDetails(),
         worldId: game.world.id, userId: game.user.id, actorId: this.actor.id,
         savedAt: Date.now(),
         coreVersion: game.version, systemVersion: game.system.version,
         moduleVersion: game.modules.get(MODULE_ID)?.version ?? "dev",
         lang: game.i18n.lang,
         // The bar is drawn before game.i18n exists, so it travels with its own text.
-        strings: { savedAt: L("POCKET5E.Snapshot.SavedAt"), updating: L("POCKET5E.Snapshot.Updating") },
+        strings: {
+          savedAt: L("POCKET5E.Snapshot.SavedAt"), updating: L("POCKET5E.Snapshot.Updating"),
+          description: L("POCKET5E.Item.Description"), activities: L("POCKET5E.Item.Activities")
+        },
         html: clone.outerHTML
       });
     } catch(err) {
       console.warn(`${MODULE_ID} | snapshot not stored:`, err?.message ?? err);
     }
+  }
+
+  /**
+   * What the item cards need while the world is still loading: description, badges and activities for every item
+   * on the sheet. Reading a spell is the most common reason to open the app at all, so it should not wait.
+   */
+  #snapshotDetails() {
+    const details = {};
+    let budget = SNAPSHOT_TEXT_BUDGET;
+    for ( const item of this.actor.items ) {
+      const sys = item.system ?? {};
+      const badges = [];
+      const uses = usesText(sys);
+      if ( sys.quantity !== undefined ) badges.push(`${L("POCKET5E.Item.Quantity")}: ${sys.quantity ?? 1}`);
+      if ( uses ) badges.push(`${L("POCKET5E.Item.Uses")}: ${uses}`);
+      if ( sys.equipped ) badges.push(L("POCKET5E.Item.Equipped"));
+      if ( sys.attuned ) badges.push(L("POCKET5E.Item.Attuned"));
+      const properties = fmtLabel(item.labels?.properties);
+      if ( properties ) badges.push(properties);
+
+      let description = "";
+      if ( budget > 0 ) {
+        description = plainDescription(sys.description?.value).slice(0, Math.min(budget, SNAPSHOT_TEXT_MAX));
+        budget -= description.length;
+      }
+      details[item.id] = {
+        name: item.name,
+        img: item.img,
+        subtitle: [L(CONFIG.Item.typeLabels?.[item.type] ?? item.type),
+          (item.type === "spell") ? fmtLabel(item.labels?.level) : "",
+          (item.type === "spell") ? fmtLabel(item.labels?.school) : "",
+          sys.rarity ? loc(CONFIG.DND5E.itemRarity?.[sys.rarity], sys.rarity) : ""].filter(Boolean).join(" · "),
+        badges,
+        activities: (sys.activities?.contents ?? []).map(a => ({
+          name: a.name?.trim() || L(a.metadata?.title ?? "") || item.name,
+          meta: [fmtLabel(a.labels?.activation), fmtLabel(a.labels?.range), fmtLabel(a.labels?.target),
+            fmtLabel(a.labels?.toHit), fmtLabel(a.labels?.damage), fmtLabel(a.labels?.save)].filter(Boolean).join(" · ")
+        })),
+        description
+      };
+    }
+    return details;
   }
 
   #syncRollModeUI() {

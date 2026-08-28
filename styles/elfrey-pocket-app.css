@@ -1357,8 +1357,19 @@ body.pocket5e-standalone #notifications {
   0%, 100% { background: var(--pocket5e-surface-2); }
   35% { background: var(--pocket5e-surface); color: var(--pocket5e-accent); }
 }
-/* Nothing here can act on the world yet: only the tab bar stays live. */
-.pocket5e-snapshot .pocket5e-shell [data-action]:not([data-tab]) { opacity: 0.6; cursor: default; }
+/* Nothing here can act on the world yet: only the tab bar and item cards stay live. */
+.pocket5e-snapshot .pocket5e-shell [data-action]:not([data-tab]):not([data-action="openItem"]) { opacity: 0.6; cursor: default; }
+.pocket5e-snapshot-activities { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pocket5e-snapshot-activities li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--pocket5e-radius);
+  border: 1px solid var(--pocket5e-border);
+  background: var(--pocket5e-surface);
+}
+.pocket5e-snapshot-activities small { color: var(--pocket5e-muted); font-size: 0.78rem; }
 
 /* ---------- Target picker (GM relay) ---------- */
 

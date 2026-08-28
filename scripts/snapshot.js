@@ -11,13 +11,16 @@
  * exactly the parts of the boot we are skipping. Markup needs nothing but the stylesheet, which app.html already
  * carries. Everything interactive is disabled: there is no Foundry underneath to take an action.
  *
+ * Alongside the markup each record carries the item details (description, badges, activities), so tapping a spell
+ * or a piece of gear opens its card right away — reading is the reason most players open the app at all.
+ *
  * Storage is IndexedDB (localStorage is synchronous and ~5 MB); one record per world+user+actor, with a pointer
  * to the last one in localStorage so the boot can find it before any Foundry code exists.
  */
 import { MODULE_ID } from "./settings.js";
 
 /** Bump when the stored markup or record shape changes — older records are then dropped unread. */
-const SCHEMA = 1;
+const SCHEMA = 2;
 const DB_NAME = `${MODULE_ID}.cache`;
 const STORE = "snapshots";
 const POINTER = `${MODULE_ID}.snapshotKey`;
@@ -143,7 +146,7 @@ export function showSnapshot(record) {
 
   root.querySelector(".pocket5e-boot")?.classList.add("pocket5e-hidden");
   root.append(wrapper);
-  wireTabs(wrapper);
+  wireTabs(wrapper, record);
 
   const P = globalThis.POCKET5E;
   if ( P ) P.tCacheShown = performance.now();
@@ -182,10 +185,14 @@ function banner(record) {
  * only a class swap. The "More" button has no popup here (its menu is context-driven), so it opens its tab.
  * Any other control flashes the bar instead of doing nothing silently.
  */
-function wireTabs(wrapper) {
+function wireTabs(wrapper, record) {
   wrapper.addEventListener("click", event => {
     const button = event.target.closest("[data-tab], [data-action]");
     event.preventDefault();
+    if ( button?.dataset?.action === "openItem" ) {
+      const id = button.closest("[data-item-id]")?.dataset.itemId;
+      if ( showDetails(wrapper, record, id) ) return;
+    }
     const tab = button?.dataset?.tab;
     if ( !tab ) return flashBar(wrapper);
     for ( const panel of wrapper.querySelectorAll(".pocket5e-tab[data-tab]") ) {
@@ -195,6 +202,78 @@ function wireTabs(wrapper) {
       btn.classList.toggle("active", btn.dataset.tab === tab);
     }
   }, true);
+}
+
+/**
+ * The item card, read-only, from what was stored with the snapshot: description, badges and the list of
+ * activities. Everything that would change the world is left out — there is nothing to change it in yet.
+ * @returns {boolean}   Whether a card was opened.
+ */
+function showDetails(wrapper, record, itemId) {
+  const item = record?.details?.[itemId];
+  if ( !item ) return false;
+  const strings = record.strings ?? {};
+  wrapper.querySelector(".pocket5e-snapshot-drawer")?.remove();
+
+  const drawer = document.createElement("div");
+  drawer.className = "pocket5e-drawer pocket5e-snapshot-drawer";
+  const el = (tag, cls, text) => {
+    const node = document.createElement(tag);
+    if ( cls ) node.className = cls;
+    if ( text !== undefined ) node.textContent = text;
+    return node;
+  };
+
+  const panel = el("section", "pocket5e-drawer-panel");
+  const head = el("header", "pocket5e-drawer-head");
+  if ( item.img ) {
+    const img = document.createElement("img");
+    img.src = item.img;
+    img.alt = "";
+    head.append(img);
+  }
+  const info = el("div", "pocket5e-row2-info");
+  info.append(el("strong", null, item.name ?? ""), el("small", null, item.subtitle ?? ""));
+  const close = el("button", "pocket5e-iconbtn");
+  close.type = "button";
+  close.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+  close.addEventListener("click", () => drawer.remove());
+  head.append(info, close);
+
+  const body = el("div", "pocket5e-drawer-body");
+  if ( item.badges?.length ) {
+    const badges = el("div", "pocket5e-badges");
+    for ( const text of item.badges ) badges.append(el("span", "pocket5e-badge", text));
+    body.append(badges);
+  }
+  if ( item.activities?.length ) {
+    const card = el("div", "pocket5e-card");
+    card.append(el("h2", null, strings.activities ?? ""));
+    const list = el("ul", "pocket5e-snapshot-activities");
+    for ( const a of item.activities ) {
+      const row = el("li");
+      row.append(el("strong", null, a.name ?? ""));
+      if ( a.meta ) row.append(el("small", null, a.meta));
+      list.append(row);
+    }
+    card.append(list);
+    body.append(card);
+  }
+  const desc = el("div", "pocket5e-card pocket5e-desc");
+  desc.append(el("h2", null, strings.description ?? ""));
+  if ( item.description ) {
+    const holder = document.createElement("div");
+    holder.innerHTML = item.description;          // the player's own world content, as the live card shows it
+    desc.append(holder);
+  }
+  else desc.append(el("p", "pocket5e-muted", "—"));
+  body.append(desc);
+
+  panel.append(head, body);
+  drawer.append(panel);
+  drawer.addEventListener("click", event => { if ( event.target === drawer ) drawer.remove(); });
+  wrapper.append(drawer);
+  return true;
 }
 
 function flashBar(wrapper) {
