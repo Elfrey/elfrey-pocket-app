@@ -14,7 +14,7 @@ import {
   performRoll, applyHP, setExhaustion, setDeathSaves, toggleCondition, endConcentration, endTurn, actorSummary,
   setRollMode, useItem, rollActivityAttack, rollActivityDamage, rollActivityFormula, toggleEquipped, toggleAttuned,
   changeQuantity, updateCurrency, togglePrepared, setSpellSlot, haptic, getRollMode,
-  configureUsage, serializeUsage, usageSummary
+  configureUsage, serializeUsage, usageSummary, fmtLabel, usesText, loc
 } from "../actions.js";
 import { relayEnabled, designatedGM, needsTargets, requestUse } from "../relay.js";
 import { TargetPicker } from "./target-picker.js";
@@ -32,12 +32,32 @@ import { ChatPanel } from "./chat.js";
 import { ItemDrawer } from "./item-drawer.js";
 import { PrepareDrawer } from "./prepare-drawer.js";
 import { openFullSheet } from "./full-sheet.js";
+import { writeSnapshot, hideSnapshot, snapshotKey } from "../snapshot.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = `modules/${MODULE_ID}/templates`;
 const TAB = { classes: ["tab", "pocket5e-tab"], scrollable: [""] };
 const L = key => game.i18n.localize(key);
 const HP_MODE_LABEL = { damage: "POCKET5E.Overview.Damage", heal: "POCKET5E.Overview.Heal", temp: "POCKET5E.Overview.TempHP" };
+/** Ceiling for the descriptions stored with a snapshot, and for one of them (a sheet is normally far under it). */
+const SNAPSHOT_TEXT_BUDGET = 1_500_000;
+const SNAPSHOT_TEXT_MAX = 24_000;
+
+/**
+ * Descriptions are stored as written, minus the markup only Foundry's enricher understands: without game.i18n,
+ * documents or CONFIG there is nothing to resolve @UUID links or inline rolls against, and the raw codes would
+ * be shown to the player. The live card, once the world is up, shows the fully enriched text.
+ */
+function plainDescription(value) {
+  return String(value ?? "")
+    .replace(/@(?:UUID|Embed)\[[^\]]*\]\{([^}]*)\}/g, "$1")
+    .replace(/@(?:UUID|Embed)\[[^\]]*\]/g, "")
+    .replace(/&(?:Reference|Lookup)\[[^\]]*\]\{([^}]*)\}/g, "$1")
+    .replace(/&(?:Reference|Lookup)\[([^\]]*)\]/g, "$1")
+    .replace(/\[\[\/?[a-z]*\s*([^\]]*)\]\]\{([^}]*)\}/gi, "$2")
+    .replace(/\[\[\/?[a-z]*\s*([^\]]*)\]\]/gi, "$1")
+    .trim();
+}
 
 export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor({ actor, onSwitchCharacter, ...options }={}) {
@@ -180,6 +200,9 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
 
   #onSwitchCharacterCb;
   #hooks = [];
+  #snapshotBound = false;
+  /** Store the sheet a little after it settles, not on every part re-render. */
+  #snapshotSoon = foundry.utils.debounce(() => this.#storeSnapshot(), 2000);
   #pending = new Set();
   #flush = foundry.utils.debounce(() => {
     const parts = [...this.#pending];
@@ -201,6 +224,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
   _insertElement(element) {
     const root = document.getElementById("pocket5e-root") ?? document.body;
     root.querySelector(".pocket5e-boot")?.remove();
+    hideSnapshot();          // the live sheet takes over from the cached one (snapshot.js)
     const existing = document.getElementById(element.id);
     if ( existing ) existing.replaceWith(element);
     else root.append(element);
@@ -290,6 +314,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       { label: L("POCKET5E.More.TimeCore"), value: ms(P.t0, P.tSystem) },
       { label: L("POCKET5E.More.TimeWorld"), value: ms(P.tWorld, P.tData) },
       { label: L("POCKET5E.More.TimeReady"), value: ms(P.t0, P.tReady) },
+      { label: L("POCKET5E.More.TimeCache"), value: ms(P.t0, P.tCacheShown) },
       { label: L("POCKET5E.More.Documents"), value: `${game.actors.size} / ${game.items.size} / ${game.scenes.size} / ${game.messages.size}` },
       { label: L("POCKET5E.More.ModulesSkipped"), value: game.modules.filter(m => m.active && (m.id !== MODULE_ID)).length },
       { label: L("POCKET5E.More.Versions"), value: `Foundry ${game.version} · dnd5e ${game.system.version} · app ${game.modules.get(MODULE_ID)?.version ?? "dev"}` },
@@ -313,6 +338,14 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onRender(context, options) {
     await super._onRender(context, options);
     const parts = options.parts ?? [];
+    this.#snapshotSoon();
+    if ( !this.#snapshotBound ) {
+      this.#snapshotBound = true;
+      // Leaving the app is the moment worth catching — the phone may kill the page right after.
+      const store = () => { if ( document.visibilityState === "hidden" ) this.#storeSnapshot(); };
+      document.addEventListener("visibilitychange", store);
+      window.addEventListener("pagehide", () => this.#storeSnapshot());
+    }
     if ( parts.includes("chat") ) {
       this.chat.attach(this.element.querySelector(".pocket5e-chat-drawer"));
     }
@@ -501,6 +534,81 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
     } finally {
       if ( target ) target.disabled = false;
     }
+  }
+
+  /**
+   * Keep the rendered sheet in the browser, so the next start can show it while the world loads (PLAN.md,
+   * phase 11). Transient overlays are dropped: they would come back open, on top of a sheet nobody can use.
+   */
+  async #storeSnapshot() {
+    if ( !this.rendered || !this.element ) return;   // the shell only ever exists inside the standalone app
+    try {
+      const clone = this.element.cloneNode(true);
+      clone.classList.remove("menu-open", "chat-open", "more-open");
+      for ( const sel of [".pocket5e-chat-drawer", ".pocket5e-more-menu", ".pocket5e-more-backdrop",
+        ".pocket5e-menu", ".pocket5e-backdrop", ".pocket5e-privacy-menu"] ) {
+        clone.querySelectorAll(sel).forEach(el => el.remove());
+      }
+      await writeSnapshot({
+        key: snapshotKey(game.world.id, game.user.id, this.actor.id),
+        details: this.#snapshotDetails(),
+        worldId: game.world.id, userId: game.user.id, actorId: this.actor.id,
+        savedAt: Date.now(),
+        coreVersion: game.version, systemVersion: game.system.version,
+        moduleVersion: game.modules.get(MODULE_ID)?.version ?? "dev",
+        lang: game.i18n.lang,
+        // The bar is drawn before game.i18n exists, so it travels with its own text.
+        strings: {
+          savedAt: L("POCKET5E.Snapshot.SavedAt"), updating: L("POCKET5E.Snapshot.Updating"),
+          description: L("POCKET5E.Item.Description"), activities: L("POCKET5E.Item.Activities")
+        },
+        html: clone.outerHTML
+      });
+    } catch(err) {
+      console.warn(`${MODULE_ID} | snapshot not stored:`, err?.message ?? err);
+    }
+  }
+
+  /**
+   * What the item cards need while the world is still loading: description, badges and activities for every item
+   * on the sheet. Reading a spell is the most common reason to open the app at all, so it should not wait.
+   */
+  #snapshotDetails() {
+    const details = {};
+    let budget = SNAPSHOT_TEXT_BUDGET;
+    for ( const item of this.actor.items ) {
+      const sys = item.system ?? {};
+      const badges = [];
+      const uses = usesText(sys);
+      if ( sys.quantity !== undefined ) badges.push(`${L("POCKET5E.Item.Quantity")}: ${sys.quantity ?? 1}`);
+      if ( uses ) badges.push(`${L("POCKET5E.Item.Uses")}: ${uses}`);
+      if ( sys.equipped ) badges.push(L("POCKET5E.Item.Equipped"));
+      if ( sys.attuned ) badges.push(L("POCKET5E.Item.Attuned"));
+      const properties = fmtLabel(item.labels?.properties);
+      if ( properties ) badges.push(properties);
+
+      let description = "";
+      if ( budget > 0 ) {
+        description = plainDescription(sys.description?.value).slice(0, Math.min(budget, SNAPSHOT_TEXT_MAX));
+        budget -= description.length;
+      }
+      details[item.id] = {
+        name: item.name,
+        img: item.img,
+        subtitle: [L(CONFIG.Item.typeLabels?.[item.type] ?? item.type),
+          (item.type === "spell") ? fmtLabel(item.labels?.level) : "",
+          (item.type === "spell") ? fmtLabel(item.labels?.school) : "",
+          sys.rarity ? loc(CONFIG.DND5E.itemRarity?.[sys.rarity], sys.rarity) : ""].filter(Boolean).join(" · "),
+        badges,
+        activities: (sys.activities?.contents ?? []).map(a => ({
+          name: a.name?.trim() || L(a.metadata?.title ?? "") || item.name,
+          meta: [fmtLabel(a.labels?.activation), fmtLabel(a.labels?.range), fmtLabel(a.labels?.target),
+            fmtLabel(a.labels?.toHit), fmtLabel(a.labels?.damage), fmtLabel(a.labels?.save)].filter(Boolean).join(" · ")
+        })),
+        description
+      };
+    }
+    return details;
   }
 
   #syncRollModeUI() {
