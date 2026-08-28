@@ -3,6 +3,7 @@
  */
 import { MODULE_ID } from "../settings.js";
 import { actorSummary } from "../actions.js";
+import { hideSnapshot } from "../snapshot.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -37,6 +38,7 @@ export class CharacterPicker extends HandlebarsApplicationMixin(ApplicationV2) {
   _insertElement(element) {
     const root = document.getElementById("pocket5e-root") ?? document.body;
     root.querySelector(".pocket5e-boot")?.remove();
+    hideSnapshot();
     const existing = document.getElementById(element.id);
     if ( existing ) existing.replaceWith(element);
     else root.append(element);

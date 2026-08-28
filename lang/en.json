@@ -126,6 +126,7 @@
       "TimeCore": "Core + connect",
       "TimeWorld": "World download",
       "TimeReady": "Total to ready",
+      "TimeCache": "Cached sheet shown",
       "Documents": "Actors / Items / Scenes / Messages",
       "ModulesSkipped": "World modules not loaded",
       "Versions": "Versions",
@@ -196,6 +197,10 @@
       "No": "No",
       "Ok": "OK",
       "Cancel": "Cancel"
+    },
+    "Snapshot": {
+      "SavedAt": "Data from {time}",
+      "Updating": "updating…"
     },
     "Inventory": {
       "Weight": "Carried weight",

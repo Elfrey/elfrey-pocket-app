@@ -16,6 +16,7 @@ import { MODULE_ID } from "../settings.js";
 import { MobileMode } from "../mobile-mode.js";
 import { applyTheme, watchSystemTheme } from "../theme.js";
 import { showLogin } from "./login.js";
+import { readSnapshot, showSnapshot, hideSnapshot, dropSnapshot, setSnapshotStatus, snapshotShown } from "../snapshot.js";
 
 /** Route prefix as defined by the page's inline script (same contract as Foundry's own pages). */
 const PREFIX = (typeof ROUTE_PREFIX === "string" && ROUTE_PREFIX) ? `/${ROUTE_PREFIX}` : "";
@@ -26,6 +27,7 @@ const log = (...args) => console.log(`${MODULE_ID} |`, ...args);
 function setStatus(text) {
   const el = document.getElementById("pocket5e-boot-status");
   if ( el ) el.textContent = text;
+  setSnapshotStatus(text);      // the cached sheet covers the boot screen; its bar shows the progress instead
 }
 
 function loadStyle(href) {
@@ -124,6 +126,7 @@ function moduleActiveInPayload(data, id) {
 
 function fail(err) {
   console.error(`${MODULE_ID} |`, err);
+  if ( snapshotShown() ) hideSnapshot();     // the error belongs on the boot screen, not under a stale sheet
   const box = document.querySelector(".pocket5e-boot");
   if ( !box ) return;
   const msg = document.createElement("p");
@@ -140,6 +143,11 @@ async function boot() {
   await P.domReady;
   applyTheme();          // from localStorage — before any Foundry code, so the boot/login screens match
   watchSystemTheme();
+
+  // 0. The sheet this phone showed last time, straight from the browser — on screen in a few hundred ms, while
+  //    everything below runs. Read-only, and replaced by the live shell the moment it renders (PLAN.md, phase 11).
+  const snapshot = await readSnapshot();
+  if ( snapshot ) showSnapshot(snapshot);
 
   // 1. Core stylesheets + vendor scripts exactly as the server's pages list them, then the client library itself —
   //    a dynamic import after DOMContentLoaded (see file header).
@@ -179,9 +187,17 @@ async function boot() {
 
   // 4. Not logged in → login screen; it reloads the page on success.
   if ( !socket.session.userId ) {
+    hideSnapshot();
     log("no user on session — showing login");
     await showLogin(socket, route);
     return;
+  }
+
+  // A snapshot belongs to one player: somebody else on this phone must not see it.
+  if ( snapshot && (snapshot.userId !== socket.session.userId) ) {
+    log("snapshot belongs to another user — discarded");
+    hideSnapshot();
+    dropSnapshot(snapshot.key);
   }
 
   // 5. System, our hooks, world data, Game.
@@ -225,10 +241,19 @@ async function boot() {
   }
   else P.socketlib ??= "skipped";
 
+  // Same for a different world on the same server.
+  const worldId = data.world?.id ?? data.world?._id;
+  if ( snapshot && worldId && (snapshot.worldId !== worldId) ) {
+    log("snapshot belongs to another world — discarded");
+    hideSnapshot();
+    dropSnapshot(snapshot.key);
+  }
+
   globalThis.game = (Game.length >= 4) ? new Game("game", data, sessionId, socket) : new Game("game", data, socket);
   await game.initialize();
   P.tReady = performance.now();
-  log(`ready in ${Math.round(P.tReady - P.t0)} ms`);
+  log(`ready in ${Math.round(P.tReady - P.t0)} ms`
+    + (P.tCacheShown ? ` (cached sheet shown in ${Math.round(P.tCacheShown - P.t0)} ms)` : ""));
 }
 
 boot().catch(fail);

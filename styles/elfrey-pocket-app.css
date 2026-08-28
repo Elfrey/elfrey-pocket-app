@@ -234,7 +234,7 @@ body.pocket5e-standalone .watermark {
 
 /* ---------- Shell layout ---------- */
 
-#pocket5e-shell {
+.pocket5e-shell {
   position: fixed;
   inset: 0;
   display: grid;
@@ -329,8 +329,8 @@ body.pocket5e-standalone .watermark {
 }
 .pocket5e-menu button:hover { background: var(--pocket5e-surface-2); box-shadow: none; }
 .pocket5e-menu button i { width: 20px; text-align: center; color: var(--pocket5e-muted); }
-#pocket5e-shell.menu-open .pocket5e-backdrop { display: block; }
-#pocket5e-shell.menu-open .pocket5e-menu { display: flex; }
+.pocket5e-shell.menu-open .pocket5e-backdrop { display: block; }
+.pocket5e-shell.menu-open .pocket5e-menu { display: flex; }
 
 /* Tabs (parts) — all share grid row 2; only the active one is shown */
 .pocket5e-tab {
@@ -470,7 +470,7 @@ body.pocket5e-standalone .watermark {
   transition: transform 0.25s ease;
   visibility: hidden;
 }
-#pocket5e-shell.chat-open .pocket5e-chat-drawer { transform: none; visibility: visible; }
+.pocket5e-shell.chat-open .pocket5e-chat-drawer { transform: none; visibility: visible; }
 
 .pocket5e-chat-head {
   display: flex;
@@ -1325,6 +1325,41 @@ body.pocket5e-standalone #notifications {
 .pocket5e-remote-foot { grid-template-columns: 1fr 1fr; }
 .pocket5e-remote-foot:has(> :only-child) { grid-template-columns: 1fr; }
 
+/* ---------- Snapshot: the cached sheet while the world loads ---------- */
+
+.pocket5e-hidden { display: none !important; }
+.pocket5e-snapshot {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--pocket5e-bg);
+}
+/* The copy sits inside the wrapper, under the bar, instead of owning the viewport itself. */
+.pocket5e-snapshot .pocket5e-shell { position: static; inset: auto; height: 100%; }
+.pocket5e-snapshot-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(var(--pocket5e-safe-top) + 6px) 12px 6px;
+  background: var(--pocket5e-surface-2);
+  border-bottom: 1px solid var(--pocket5e-border);
+  color: var(--pocket5e-muted);
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+.pocket5e-snapshot-bar i { color: var(--pocket5e-accent); }
+.pocket5e-snapshot-bar .pocket5e-snapshot-age { color: var(--pocket5e-text); }
+.pocket5e-snapshot-bar .pocket5e-snapshot-status { margin-left: auto; text-align: right; }
+.pocket5e-snapshot-bar.flash { animation: pocket5e-snapshot-flash 0.6s ease; }
+@keyframes pocket5e-snapshot-flash {
+  0%, 100% { background: var(--pocket5e-surface-2); }
+  35% { background: var(--pocket5e-surface); color: var(--pocket5e-accent); }
+}
+/* Nothing here can act on the world yet: only the tab bar stays live. */
+.pocket5e-snapshot .pocket5e-shell [data-action]:not([data-tab]) { opacity: 0.6; cursor: default; }
+
 /* ---------- Target picker (GM relay) ---------- */
 
 .pocket5e-targets-panel { grid-template-rows: auto minmax(0, 1fr) auto; }
@@ -1428,8 +1463,8 @@ body.pocket5e-standalone #notifications {
 .pocket5e-more-menu button small { color: var(--pocket5e-muted); font-variant-numeric: tabular-nums; }
 .pocket5e-more-menu button.active { color: var(--pocket5e-accent); }
 .pocket5e-more-menu button.active i { color: var(--pocket5e-accent); }
-#pocket5e-shell.more-open .pocket5e-more-backdrop { display: block; }
-#pocket5e-shell.more-open .pocket5e-more-menu { display: flex; }
+.pocket5e-shell.more-open .pocket5e-more-backdrop { display: block; }
+.pocket5e-shell.more-open .pocket5e-more-menu { display: flex; }
 .pocket5e-tabbtn-more span { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .pocket5e-menu h3 {

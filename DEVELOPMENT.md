@@ -42,6 +42,7 @@ scripts/
   actions.js                 обёртки над API dnd5e (единственная точка контакта с системой)
   relay.js                   GM-relay: использование предметов на клиенте мастера (midi-qol) — обе стороны протокола
   bridge.js                  ответы на socketlib-запросы midi-qol/CPR к игроку (реакции, броски, диалоги CPR); socketlib грузит boot.js
+  snapshot.js                кэш последнего бланка (IndexedDB) — показывается на старте, пока грузится мир
   standalone/boot.js         бутстрап (см. выше)
   standalone/login.js        экран входа
   shell/                     PocketShell (app.js), chat, item/prepare-drawer, target-picker, reaction-picker, remote-dialog, dialogs, full-sheet, controller, picker, forced-users
@@ -62,6 +63,8 @@ tools/install-v14.{sh,ps1}   симлинк папки модуля в public/ F
 **Кэш манифестов и hot reload.** Сервер читает `module.json` при старте и при каждом выходе в Setup (`Return to Setup` → запуск мира), а не при перезагрузке страницы: новая версия в списке модулей и флаг `"socket": true` появляются только после этого. Файлы из Data отдаются с `Cache-Control: no-cache` — скрипты подхватываются обычной перезагрузкой. Штатный **hot reload** Foundry включён: `"hotReload": true` в `data-v13/Config/options.json` (читается при старте сервера — после правки нужен рестарт) и `flags.hotReload` в `module.json` (`styles`, `templates`, `lang`: css/hbs/json). Изменённые стили, шаблоны и локализация прилетают в открытые клиенты без перезагрузки — и в `/game`, и в приложение (хук `hotReload` в `main.js` обновляет `@import` в `app.html` и именованные партиалы `PARTIALS`). JS hot reload не трогает — для скриптов перезагрузка страницы.
 
 **GM-relay (ветка `feature/midi-relay`, прототип):** мировая настройка «Использовать предметы через клиент мастера» (Авто = пока в мире включён midi-qol). Проверка: мастер в обычном клиенте на сцене с токенами (в консоли `elfrey-pocket-app | relay | GM handler ready`), игрок в приложении жмёт «использовать» у атаки/заклинания → пикер целей → в чате карточка от имени игрока, воркфлоу midi у мастера. Отладка: сообщения `relay | →` (телефон) и `relay | ←` (мастер) в консолях; протокол — в шапке `scripts/relay.js`, дизайн и ограничения — PLAN.md, фаза 10. Bridge: в консоли телефона `bridge | answering midi-qol: …` и `answering chris-premades: …` — значит socketlib загружен и обработчики стоят; без этих строк реакции и CPR-диалоги игрока не работают (проверьте, что socketlib включён в мире).
+
+**Кэш бланка (фаза 11).** Последний отрендеренный бланк лежит в IndexedDB `elfrey-pocket-app.cache` (указатель — `localStorage["elfrey-pocket-app.snapshotKey"]`) и показывается на старте, пока грузится мир; в консоли — `snapshot shown (N KB, saved …)` и `ready in … (cached sheet shown in … ms)`. Сбросить: `indexedDB.deleteDatabase("elfrey-pocket-app.cache"); localStorage.removeItem("elfrey-pocket-app.snapshotKey")`. При изменении разметки оболочки поднимайте `SCHEMA` в `scripts/snapshot.js` — иначе старый снимок покажется с новым CSS.
 
 **Переименование модуля:** `MODULE_ID` в `scripts/settings.js`, `id` в `module.json`, имя папки и симлинки, жёсткие пути в `app.html` и `manifest.webmanifest`.
 

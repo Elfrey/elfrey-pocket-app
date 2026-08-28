@@ -32,6 +32,7 @@ import { ChatPanel } from "./chat.js";
 import { ItemDrawer } from "./item-drawer.js";
 import { PrepareDrawer } from "./prepare-drawer.js";
 import { openFullSheet } from "./full-sheet.js";
+import { writeSnapshot, hideSnapshot, snapshotKey } from "../snapshot.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = `modules/${MODULE_ID}/templates`;
@@ -180,6 +181,9 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
 
   #onSwitchCharacterCb;
   #hooks = [];
+  #snapshotBound = false;
+  /** Store the sheet a little after it settles, not on every part re-render. */
+  #snapshotSoon = foundry.utils.debounce(() => this.#storeSnapshot(), 2000);
   #pending = new Set();
   #flush = foundry.utils.debounce(() => {
     const parts = [...this.#pending];
@@ -201,6 +205,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
   _insertElement(element) {
     const root = document.getElementById("pocket5e-root") ?? document.body;
     root.querySelector(".pocket5e-boot")?.remove();
+    hideSnapshot();          // the live sheet takes over from the cached one (snapshot.js)
     const existing = document.getElementById(element.id);
     if ( existing ) existing.replaceWith(element);
     else root.append(element);
@@ -290,6 +295,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       { label: L("POCKET5E.More.TimeCore"), value: ms(P.t0, P.tSystem) },
       { label: L("POCKET5E.More.TimeWorld"), value: ms(P.tWorld, P.tData) },
       { label: L("POCKET5E.More.TimeReady"), value: ms(P.t0, P.tReady) },
+      { label: L("POCKET5E.More.TimeCache"), value: ms(P.t0, P.tCacheShown) },
       { label: L("POCKET5E.More.Documents"), value: `${game.actors.size} / ${game.items.size} / ${game.scenes.size} / ${game.messages.size}` },
       { label: L("POCKET5E.More.ModulesSkipped"), value: game.modules.filter(m => m.active && (m.id !== MODULE_ID)).length },
       { label: L("POCKET5E.More.Versions"), value: `Foundry ${game.version} · dnd5e ${game.system.version} · app ${game.modules.get(MODULE_ID)?.version ?? "dev"}` },
@@ -313,6 +319,14 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onRender(context, options) {
     await super._onRender(context, options);
     const parts = options.parts ?? [];
+    this.#snapshotSoon();
+    if ( !this.#snapshotBound ) {
+      this.#snapshotBound = true;
+      // Leaving the app is the moment worth catching — the phone may kill the page right after.
+      const store = () => { if ( document.visibilityState === "hidden" ) this.#storeSnapshot(); };
+      document.addEventListener("visibilitychange", store);
+      window.addEventListener("pagehide", () => this.#storeSnapshot());
+    }
     if ( parts.includes("chat") ) {
       this.chat.attach(this.element.querySelector(".pocket5e-chat-drawer"));
     }
@@ -500,6 +514,35 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#error(err);
     } finally {
       if ( target ) target.disabled = false;
+    }
+  }
+
+  /**
+   * Keep the rendered sheet in the browser, so the next start can show it while the world loads (PLAN.md,
+   * phase 11). Transient overlays are dropped: they would come back open, on top of a sheet nobody can use.
+   */
+  async #storeSnapshot() {
+    if ( !this.rendered || !this.element ) return;   // the shell only ever exists inside the standalone app
+    try {
+      const clone = this.element.cloneNode(true);
+      clone.classList.remove("menu-open", "chat-open", "more-open");
+      for ( const sel of [".pocket5e-chat-drawer", ".pocket5e-more-menu", ".pocket5e-more-backdrop",
+        ".pocket5e-menu", ".pocket5e-backdrop", ".pocket5e-privacy-menu"] ) {
+        clone.querySelectorAll(sel).forEach(el => el.remove());
+      }
+      await writeSnapshot({
+        key: snapshotKey(game.world.id, game.user.id, this.actor.id),
+        worldId: game.world.id, userId: game.user.id, actorId: this.actor.id,
+        savedAt: Date.now(),
+        coreVersion: game.version, systemVersion: game.system.version,
+        moduleVersion: game.modules.get(MODULE_ID)?.version ?? "dev",
+        lang: game.i18n.lang,
+        // The bar is drawn before game.i18n exists, so it travels with its own text.
+        strings: { savedAt: L("POCKET5E.Snapshot.SavedAt"), updating: L("POCKET5E.Snapshot.Updating") },
+        html: clone.outerHTML
+      });
+    } catch(err) {
+      console.warn(`${MODULE_ID} | snapshot not stored:`, err?.message ?? err);
     }
   }
 
