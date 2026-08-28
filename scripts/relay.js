@@ -13,6 +13,8 @@
  *   GM    → { type: "useResult", id, ok: true,  stage: "done" }       workflow finished (reactions wait for this)
  *   GM    → { type: "useResult", id, ok: false, stage, error }        rejected, or failed during execution
  *   phone → { type: "targets", v, id, userId, gmId, actorUuid, itemId?, activityId? }
+ *   phone → { type: "mobile", userId }                 "I am in the app" — see patchMidiPlayerRolls
+ *   GM    → { type: "whoIsMobile" }                     asked once when the GM's client starts
  *   GM    → { type: "dialog", id, userId, args }        a CPR dialog raised while running that player's use
  *   phone → { type: "dialogResult", id, result }        its answer, in CPR's own result shape
  *   GM    → { type: "targetsResult", id, ok, tokens: [{ uuid, name, img, disposition, isSelf, visible, distance,
@@ -87,9 +89,18 @@ const pending = new Map();
 
 export function registerRelayClient() {
   game.socket.on(RELAY_CHANNEL, onClientMessage);
+  announceMobile();
+  // A GM joining later, or reloading, has no idea who is on a phone until asked — and asks on start.
+  game.socket.on("connect", () => announceMobile());
+}
+
+/** Tell the GM's client that this user is in the app, so roll requests are routed here (patchMidiPlayerRolls). */
+function announceMobile() {
+  game.socket.emit(RELAY_CHANNEL, { type: "mobile", v: RELAY_VERSION, userId: game.user.id });
 }
 
 function onClientMessage(msg) {
+  if ( msg?.type === "whoIsMobile" ) return announceMobile();
   if ( !["useResult", "targetsResult"].includes(msg?.type) ) return;
   const entry = pending.get(msg.id);
   if ( !entry ) {
@@ -205,10 +216,61 @@ export function registerRelayGM() {
     if ( msg?.type === "use" ) handleUse(msg);
     else if ( msg?.type === "targets" ) handleTargets(msg);
     else if ( msg?.type === "dialogResult" ) resolveDialog(msg);
+    else if ( msg?.type === "mobile" ) mobileUsers.add(msg.userId);
   });
+  Hooks.on("userConnected", (user, connected) => { if ( !connected ) mobileUsers.delete(user.id); });
+  game.socket.emit(RELAY_CHANNEL, { type: "whoIsMobile", v: RELAY_VERSION });
   patchPremadeDialogs();
+  patchMidiPlayerRolls();
   log(`GM handler ready (midi-qol ${globalThis.MidiQOL ? "present" : "absent"}`
     + `, chris-premades ${globalThis.chrisPremades ? "present" : "absent"})`);
+}
+
+/* -------------------------------------------- */
+/*  Roll requests aimed at a player on a phone   */
+/* -------------------------------------------- */
+
+/** Users currently in the app; they announce themselves and are forgotten when they disconnect. */
+const mobileUsers = new Set();
+
+/**
+ * When an NPC forces a save, midi hands the request to whatever the GM configured — Monk's Token Bar, Flash
+ * Rolls, Epic Rolls or its own chat card. None of those modules exist on the phone, so the request lands on the
+ * GM's screen and the player waits for a prompt that never comes.
+ *
+ * Rather than teaching the app each of those modules, the choice is undone for app users only: with the
+ * third-party flags cleared midi falls through to its own `rollAbility` request, which the bridge already
+ * answers with a real dnd5e roll. Everyone else keeps whatever the GM set up.
+ */
+function patchMidiPlayerRolls() {
+  const midi = globalThis.MidiQOL;
+  if ( !midi ) return;
+  // Whichever workflow classes declare the method themselves; subclasses inherit the patched one.
+  const classes = [midi.Workflow, midi.workflowClass, ...Object.values(midi.Workflows ?? {})]
+    .filter(cls => typeof cls === "function");
+  const patchedNames = [];
+  for ( const cls of classes ) {
+    const proto = cls.prototype;
+    if ( !Object.prototype.hasOwnProperty.call(proto ?? {}, "queueTargetSaveRoll") ) continue;
+    if ( proto.queueTargetSaveRoll.pocket5ePatched ) continue;
+    const original = proto.queueTargetSaveRoll;
+    const patched = function(options={}) {
+      const player = options?.playerInfo?.player;
+      if ( player && !player.isGM && mobileUsers.has(player.id) ) {
+        options = {
+          ...options,
+          playerInfo: { ...options.playerInfo, playerChat: false },
+          moduleFlags: { ...(options.moduleFlags ?? {}), playerMonksTB: false, playerFlashTB: false, playerEpicRolls: false }
+        };
+      }
+      return original.call(this, options);
+    };
+    patched.pocket5ePatched = true;
+    proto.queueTargetSaveRoll = patched;
+    patchedNames.push(cls.name || "Workflow");
+  }
+  if ( patchedNames.length ) log(`roll requests for players in the app go through midi's own prompt (${patchedNames.join(", ")})`);
+  else console.warn(`${MODULE_ID} | relay | midi's save dispatch not found — players in the app keep the GM's roll module`);
 }
 
 /* -------------------------------------------- */
