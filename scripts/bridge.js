@@ -13,7 +13,7 @@
  * scripts/applications/dialog.js); see PLAN.md phase 10.3.
  */
 import { MODULE_ID } from "./settings.js";
-import { haptic } from "./actions.js";
+import { haptic, configureUsage, serializeUsage } from "./actions.js";
 import { requestUse, relayEnabled, designatedGM } from "./relay.js";
 import { ReactionPicker } from "./shell/reaction-picker.js";
 import { RemoteDialog } from "./shell/remote-dialog.js";
@@ -181,8 +181,11 @@ async function chooseReactions({ tokenUuid, reactionActivityList=[], triggerToke
 
   const selfTarget = choice.target?.affects?.type === "self";
   const targetUuids = selfTarget ? [tokenUuid] : (triggerTokenUuid ? [triggerTokenUuid] : []);
+  // Same choices a desktop player would get when casting a reaction (slot level, consumption).
+  const config = await configureUsage(choice);
+  if ( config === null ) return none;
   try {
-    await requestUse(choice, { targetUuids, reaction: true, awaitCompletion: true });
+    await requestUse(choice, { targetUuids, reaction: true, awaitCompletion: true, usage: serializeUsage(config) });
     return { name: choice.name || choice.item.name, uuid: choice.uuid, itemName: choice.item.name, itemUuid: choice.item.uuid };
   } catch(err) {
     console.error(`${MODULE_ID} | bridge | reaction failed:`, err);

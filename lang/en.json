@@ -157,7 +157,9 @@
       "SceneMismatch": "The GM is viewing another scene — the chosen targets are not on it.",
       "Failed": "The GM's client could not use the item: {error}",
       "CompleteTimeout": "The GM's client did not finish the action in time.",
-      "NoScene": "The GM has no scene open."
+      "NoScene": "The GM has no scene open.",
+      "SentAtLevel": "Sent to the GM — {level}.",
+      "TemplateByGM": "The GM will place the area."
     },
     "Targets": {
       "Title": "Targets",

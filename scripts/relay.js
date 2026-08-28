@@ -245,13 +245,13 @@ async function handleUse(msg) {
     rollMode: msg.rollMode || undefined,
     data: { author: user.id, flags: { [MODULE_ID]: { relay: { userId: user.id, reaction: !!msg.reaction } } } }
   };
-  // Dialogs would open on the GM's screen — never ask. Spell level / consumption keep their defaults unless the
-  // request carries a usage config (PLAN.md, phase 10.2).
+  // Dialogs would open on the GM's screen — never ask: the player already made those choices on the phone and
+  // they travel in msg.usage (spell slot, consumption, concentration — PLAN.md, phase 10.2).
   const dialog = foundry.utils.mergeObject({ configure: false }, msg.dialog ?? {});
 
   try {
     if ( globalThis.MidiQOL?.completeActivityUse ) {
-      const usage = foundry.utils.mergeObject({
+      const usage = foundry.utils.mergeObject(foundry.utils.deepClone(msg.usage ?? {}), {
         midiOptions: {
           targetUuids: targets.map(t => t.uuid),
           ignoreUserTargets: true,            // never mix in whatever the GM happens to have targeted
@@ -266,7 +266,7 @@ async function handleUse(msg) {
             targetConfirmation: "none"        // targets were chosen on the phone; no confirmation window for the GM
           }
         }
-      }, msg.usage ?? {});
+      }, { overwrite: false });               // a usage config from the requester (CPR) keeps its own midiOptions
       if ( msg.reaction ) message.systemCard = false;   // as midi's own reaction dialog does
       if ( activity ) await MidiQOL.completeActivityUse(activity, usage, dialog, message);
       else await MidiQOL.completeItemUse(item, usage, dialog, message);
