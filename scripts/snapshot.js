@@ -188,12 +188,13 @@ function banner(record) {
     .toLocaleString(record.lang, { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" });
   const bar = document.createElement("div");
   bar.className = "pocket5e-snapshot-bar";
+  // Two lines: the age and the clock are short and fixed, the step is long and gets a line of its own.
   bar.innerHTML = `<div class="pocket5e-snapshot-line">`
     + `<i class="fa-solid fa-clock-rotate-left"></i>`
     + `<span class="pocket5e-snapshot-age"></span>`
-    + `<span class="pocket5e-snapshot-status"></span>`
     + `<span class="pocket5e-snapshot-elapsed"></span>`
-    + `</div><div class="pocket5e-snapshot-progress"><i></i></div>`;
+    + `</div><div class="pocket5e-snapshot-status"></div>`
+    + `<div class="pocket5e-snapshot-progress"><i></i></div>`;
   bar.querySelector(".pocket5e-snapshot-age").textContent = (strings.savedAt ?? "{time}").replace("{time}", time);
   bar.querySelector(".pocket5e-snapshot-status").textContent = strings.stages?.core ?? strings.updating ?? "…";
   return bar;

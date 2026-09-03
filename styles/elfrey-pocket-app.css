@@ -1346,18 +1346,24 @@ body.pocket5e-standalone #notifications {
   font-size: 0.8rem;
   line-height: 1.2;
 }
-.pocket5e-snapshot-line { display: flex; align-items: center; gap: 8px; padding: 0 12px 6px; }
+.pocket5e-snapshot-line { display: flex; align-items: baseline; gap: 8px; padding: 0 12px 2px; }
 .pocket5e-snapshot-bar i { color: var(--pocket5e-accent); }
-.pocket5e-snapshot-bar .pocket5e-snapshot-age { color: var(--pocket5e-text); white-space: nowrap; }
-.pocket5e-snapshot-bar .pocket5e-snapshot-status {
+.pocket5e-snapshot-bar .pocket5e-snapshot-age { color: var(--pocket5e-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pocket5e-snapshot-bar .pocket5e-snapshot-elapsed {
   margin-left: auto;
-  text-align: right;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--pocket5e-accent);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.pocket5e-snapshot-bar .pocket5e-snapshot-elapsed { color: var(--pocket5e-accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* The step is the informative half — it gets the width of the screen and up to two lines. */
+.pocket5e-snapshot-bar .pocket5e-snapshot-status {
+  padding: 0 12px 6px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
 /* Indeterminate on purpose: the world is one long step, and a bar stuck at "60%" tells the player nothing. */
 .pocket5e-snapshot-progress { height: 3px; overflow: hidden; background: var(--pocket5e-surface); }
 .pocket5e-snapshot-progress i {
@@ -1441,6 +1447,8 @@ body.pocket5e-standalone #notifications {
   border-top: 1px solid var(--pocket5e-border);
   background: var(--pocket5e-surface);
 }
+/* One button (the reaction sheet, the snapshot notice) fills the width instead of hugging the left edge. */
+.pocket5e-targets-foot:has(> :only-child) { grid-template-columns: 1fr; }
 .pocket5e-tag {
   display: inline-block;
   margin-left: 4px;
