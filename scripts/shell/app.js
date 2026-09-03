@@ -563,9 +563,20 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
         moduleVersion: game.modules.get(MODULE_ID)?.version ?? "dev",
         lang: game.i18n.lang,
         // The bar is drawn before game.i18n exists, so it travels with its own text.
+        // Drawn before game.i18n exists, so every word the cached sheet shows travels with it.
         strings: {
           savedAt: L("POCKET5E.Snapshot.SavedAt"), updating: L("POCKET5E.Snapshot.Updating"),
-          description: L("POCKET5E.Item.Description"), activities: L("POCKET5E.Item.Activities")
+          elapsed: L("POCKET5E.Snapshot.Elapsed"),
+          description: L("POCKET5E.Item.Description"), activities: L("POCKET5E.Item.Activities"),
+          stages: {
+            core: L("POCKET5E.Snapshot.Stage.Core"), connect: L("POCKET5E.Snapshot.Stage.Connect"),
+            system: L("POCKET5E.Snapshot.Stage.System"), world: L("POCKET5E.Snapshot.Stage.World"),
+            ready: L("POCKET5E.Snapshot.Stage.Ready")
+          },
+          notice: {
+            title: L("POCKET5E.Snapshot.Notice.Title"), text: L("POCKET5E.Snapshot.Notice.Text"),
+            dontShow: L("POCKET5E.Snapshot.Notice.DontShow"), ok: L("POCKET5E.Snapshot.Notice.Ok")
+          }
         },
         html: clone.outerHTML
       });

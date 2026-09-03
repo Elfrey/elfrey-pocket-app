@@ -1339,19 +1339,42 @@ body.pocket5e-standalone #notifications {
 /* The copy sits inside the wrapper, under the bar, instead of owning the viewport itself. */
 .pocket5e-snapshot .pocket5e-shell { position: static; inset: auto; height: 100%; }
 .pocket5e-snapshot-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: calc(var(--pocket5e-safe-top) + 6px) 12px 6px;
+  padding: calc(var(--pocket5e-safe-top) + 6px) 0 0;
   background: var(--pocket5e-surface-2);
   border-bottom: 1px solid var(--pocket5e-border);
   color: var(--pocket5e-muted);
   font-size: 0.8rem;
   line-height: 1.2;
 }
+.pocket5e-snapshot-line { display: flex; align-items: center; gap: 8px; padding: 0 12px 6px; }
 .pocket5e-snapshot-bar i { color: var(--pocket5e-accent); }
-.pocket5e-snapshot-bar .pocket5e-snapshot-age { color: var(--pocket5e-text); }
-.pocket5e-snapshot-bar .pocket5e-snapshot-status { margin-left: auto; text-align: right; }
+.pocket5e-snapshot-bar .pocket5e-snapshot-age { color: var(--pocket5e-text); white-space: nowrap; }
+.pocket5e-snapshot-bar .pocket5e-snapshot-status {
+  margin-left: auto;
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pocket5e-snapshot-bar .pocket5e-snapshot-elapsed { color: var(--pocket5e-accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Indeterminate on purpose: the world is one long step, and a bar stuck at "60%" tells the player nothing. */
+.pocket5e-snapshot-progress { height: 3px; overflow: hidden; background: var(--pocket5e-surface); }
+.pocket5e-snapshot-progress i {
+  display: block;
+  height: 100%;
+  width: 35%;
+  background: var(--pocket5e-accent);
+  border-radius: 2px;
+  animation: pocket5e-snapshot-slide 1.6s ease-in-out infinite;
+}
+@keyframes pocket5e-snapshot-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.pocket5e-snapshot-notice .pocket5e-drawer-panel { max-height: 70dvh; }
+.pocket5e-snapshot-notice-text { margin: 0; font-size: 0.95rem; line-height: 1.35; }
+.pocket5e-snapshot-notice .pocket5e-remote-row { margin-top: 4px; }
 .pocket5e-snapshot-bar.flash { animation: pocket5e-snapshot-flash 0.6s ease; }
 @keyframes pocket5e-snapshot-flash {
   0%, 100% { background: var(--pocket5e-surface-2); }

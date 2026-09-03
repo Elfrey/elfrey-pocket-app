@@ -200,7 +200,21 @@
     },
     "Snapshot": {
       "SavedAt": "Data from {time}",
-      "Updating": "updating…"
+      "Updating": "updating…",
+      "Elapsed": "{n} s",
+      "Stage": {
+        "Core": "Starting Foundry…",
+        "Connect": "Connecting to the server…",
+        "System": "Loading dnd5e…",
+        "World": "Loading the world — this is the long part…",
+        "Ready": "Almost there…"
+      },
+      "Notice": {
+        "Title": "Your sheet is from this phone's memory",
+        "Text": "The world is still loading. Until it finishes you can read the sheet, spells and items; rolls, actions and chat come back the moment loading is done — the sheet turns live on its own.",
+        "DontShow": "Don't show again",
+        "Ok": "Got it"
+      }
     },
     "Inventory": {
       "Weight": "Carried weight",

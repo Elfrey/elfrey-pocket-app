@@ -16,7 +16,7 @@ import { MODULE_ID } from "../settings.js";
 import { MobileMode } from "../mobile-mode.js";
 import { applyTheme, watchSystemTheme } from "../theme.js";
 import { showLogin } from "./login.js";
-import { readSnapshot, showSnapshot, hideSnapshot, dropSnapshot, setSnapshotStatus, snapshotShown } from "../snapshot.js";
+import { readSnapshot, showSnapshot, hideSnapshot, dropSnapshot, setSnapshotStatus, snapshotShown, snapshotStrings } from "../snapshot.js";
 
 /** Route prefix as defined by the page's inline script (same contract as Foundry's own pages). */
 const PREFIX = (typeof ROUTE_PREFIX === "string" && ROUTE_PREFIX) ? `/${ROUTE_PREFIX}` : "";
@@ -24,7 +24,20 @@ export const route = path => `${PREFIX}/${String(path).replace(/^\/+/, "")}`;
 
 const log = (...args) => console.log(`${MODULE_ID} |`, ...args);
 
-function setStatus(text) {
+/**
+ * Boot steps, in order. Their names are only known in English here — game.i18n does not exist yet — but a cached
+ * sheet carries the translated set with it, so a returning player reads the progress in their own language.
+ */
+const STAGE_LABELS = {
+  core: "Foundry VTT…",
+  connect: "Connecting…",
+  system: "dnd5e…",
+  world: "Loading the world…",
+  ready: "Ready"
+};
+
+function setStatus(stage) {
+  const text = snapshotStrings()?.stages?.[stage] ?? STAGE_LABELS[stage] ?? stage;
   const el = document.getElementById("pocket5e-boot-status");
   if ( el ) el.textContent = text;
   setSnapshotStatus(text);      // the cached sheet covers the boot screen; its bar shows the progress instead
@@ -90,6 +103,9 @@ function patchCore() {
   foundry.documents.collections.Playlists.prototype.initialize = async function() {};
   // Never join audio/video conferencing from the companion.
   foundry.av.AVMaster.prototype.connect = async function() { return false; };
+  // Core measures the viewport against a desktop tabletop and posts a permanent "your screen is too small"
+  // error. The app is built for exactly this screen; the browser-version check goes with it (same method).
+  foundry.helpers.ClientIssues.prototype._detectUsabilityIssues = function() {};
   // Full-text document index is only needed by desktop search/autocomplete; skip the CPU burn.
   foundry.helpers.DocumentIndex.prototype.index = async function() {};
 }
@@ -151,7 +167,7 @@ async function boot() {
 
   // 1. Core stylesheets + vendor scripts exactly as the server's pages list them, then the client library itself —
   //    a dynamic import after DOMContentLoaded (see file header).
-  setStatus("Foundry VTT…");
+  setStatus("core");
   P.coreAssets = await loadCoreAssets();
   const core = await import(route("scripts/foundry.mjs"));
   const Game = core.Game ?? foundry.Game;
@@ -175,7 +191,7 @@ async function boot() {
   //    never logs the world session out, so it is safe to call on every load, including after login.
   //    The cookie is HttpOnly on v14 (invisible to scripts, travels with the WebSocket handshake) and readable
   //    on v13, where Game.connect(sessionId) still wants the value.
-  setStatus("Connecting…");
+  setStatus("connect");
   //    redirect:"manual" is essential: when not yet logged in, /game answers 302 → /join; following it would hit
   //    the logout-on-/join handler. The Set-Cookie on that 302 is still applied by the browser, so the cookie is
   //    minted without ever touching /join.
@@ -201,7 +217,7 @@ async function boot() {
   }
 
   // 5. System, our hooks, world data, Game.
-  setStatus("dnd5e…");
+  setStatus("system");
   P.tSystem = performance.now();
   await Promise.all([
     loadStyle(route("systems/dnd5e/dnd5e.css")),
@@ -209,7 +225,7 @@ async function boot() {
   ]);
   await import("../main.js");
 
-  setStatus("World…");
+  setStatus("world");
   P.tWorld = performance.now();
   const data = await Game.getData(socket, "game");
   P.tData = performance.now();
