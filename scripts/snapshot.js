@@ -20,10 +20,11 @@
 import { MODULE_ID } from "./settings.js";
 
 /** Bump when the stored markup or record shape changes — older records are then dropped unread. */
-const SCHEMA = 2;
+const SCHEMA = 3;
 const DB_NAME = `${MODULE_ID}.cache`;
 const STORE = "snapshots";
 const POINTER = `${MODULE_ID}.snapshotKey`;
+const NOTICE_OFF = `${MODULE_ID}.snapshotNoticeOff`;
 /** A snapshot older than this is not worth showing — the sheet has probably moved on. */
 const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -146,10 +147,15 @@ export function showSnapshot(record) {
 
   root.querySelector(".pocket5e-boot")?.classList.add("pocket5e-hidden");
   root.append(wrapper);
+  startClock(wrapper, record.strings?.elapsed ?? "{n} s");
   wireTabs(wrapper, record);
+  showNotice(wrapper, record);
 
   const P = globalThis.POCKET5E;
-  if ( P ) P.tCacheShown = performance.now();
+  if ( P ) {
+    P.tCacheShown = performance.now();
+    P.snapshotStrings = record.strings ?? null;      // the boot writes its progress with these
+  }
   log(`snapshot shown (${Math.round((record.html.length / 1024))} KB, saved ${new Date(record.savedAt).toLocaleString()})`);
   return true;
 }
@@ -160,24 +166,88 @@ export function hideSnapshot() {
   document.querySelector("#pocket5e-root .pocket5e-boot")?.classList.remove("pocket5e-hidden");
 }
 
-/** Mirror the boot's progress into the snapshot bar, so the player sees that something is happening. */
+/** Mirror the boot's progress into the snapshot bar, so the player sees which step is running. */
 export function setSnapshotStatus(text) {
   const el = document.querySelector(`#${ELEMENT_ID} .pocket5e-snapshot-status`);
   if ( el && text ) el.textContent = text;
 }
 
+/** The strings stored with the snapshot on screen — the boot uses them for its own status line. */
+export function snapshotStrings() {
+  return globalThis.POCKET5E?.snapshotStrings ?? null;
+}
+
+/**
+ * The bar above the cached sheet: how old the data is, which step of the boot is running, and how long it has
+ * been running. The progress line is deliberately indeterminate — loading the world is one long step, and a bar
+ * frozen at "60%" for twenty seconds says less than an honest "still working".
+ */
 function banner(record) {
   const strings = record.strings ?? {};
   const time = new Date(record.savedAt ?? Date.now())
     .toLocaleString(record.lang, { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" });
   const bar = document.createElement("div");
   bar.className = "pocket5e-snapshot-bar";
-  bar.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i>`
+  // Two lines: the age and the clock are short and fixed, the step is long and gets a line of its own.
+  bar.innerHTML = `<div class="pocket5e-snapshot-line">`
+    + `<i class="fa-solid fa-clock-rotate-left"></i>`
     + `<span class="pocket5e-snapshot-age"></span>`
-    + `<span class="pocket5e-snapshot-status"></span>`;
+    + `<span class="pocket5e-snapshot-elapsed"></span>`
+    + `</div><div class="pocket5e-snapshot-status"></div>`
+    + `<div class="pocket5e-snapshot-progress"><i></i></div>`;
   bar.querySelector(".pocket5e-snapshot-age").textContent = (strings.savedAt ?? "{time}").replace("{time}", time);
-  bar.querySelector(".pocket5e-snapshot-status").textContent = strings.updating ?? "…";
+  bar.querySelector(".pocket5e-snapshot-status").textContent = strings.stages?.core ?? strings.updating ?? "…";
   return bar;
+}
+
+/** Seconds since the page started loading, ticking in the bar. Started once the bar is in the document. */
+function startClock(wrapper, format) {
+  const started = globalThis.POCKET5E?.t0 ?? performance.now();
+  const el = wrapper.querySelector(".pocket5e-snapshot-elapsed");
+  if ( !el ) return;
+  const tick = () => {
+    if ( !el.isConnected ) return clearInterval(timer);   // the live sheet took over
+    el.textContent = format.replace("{n}", String(Math.max(0, Math.round((performance.now() - started) / 1000))));
+  };
+  const timer = setInterval(tick, 1000);
+  tick();
+}
+
+/**
+ * A word about what the player is looking at, once: the sheet is real but frozen, and the buttons come back when
+ * the world arrives. Dismissed for good with the checkbox — it is only news the first time.
+ */
+function showNotice(wrapper, record) {
+  const strings = record.strings?.notice;
+  if ( !strings ) return;
+  try { if ( localStorage.getItem(NOTICE_OFF) === "1" ) return; } catch(err) { /* private mode: just show it */ }
+
+  const notice = document.createElement("div");
+  notice.className = "pocket5e-drawer pocket5e-snapshot-notice";
+  notice.innerHTML = `<section class="pocket5e-drawer-panel">
+    <header class="pocket5e-drawer-head"><div class="pocket5e-row2-info"><strong></strong></div></header>
+    <div class="pocket5e-drawer-body">
+      <p class="pocket5e-snapshot-notice-text"></p>
+      <label class="pocket5e-remote-row"><span class="name"></span><input type="checkbox"></label>
+    </div>
+    <footer class="pocket5e-targets-foot pocket5e-reaction-foot">
+      <button type="button" class="pocket5e-btn pocket5e-btn-primary"></button>
+    </footer>
+  </section>`;
+  notice.querySelector("strong").textContent = strings.title ?? "";
+  notice.querySelector(".pocket5e-snapshot-notice-text").textContent = strings.text ?? "";
+  notice.querySelector("label .name").textContent = strings.dontShow ?? "";
+  const button = notice.querySelector("footer button");
+  button.textContent = strings.ok ?? "OK";
+  const dismiss = () => {
+    if ( notice.querySelector("input[type=checkbox]").checked ) {
+      try { localStorage.setItem(NOTICE_OFF, "1"); } catch(err) { /* ignore */ }
+    }
+    notice.remove();
+  };
+  button.addEventListener("click", dismiss);
+  notice.addEventListener("click", event => { if ( event.target === notice ) dismiss(); });
+  wrapper.append(notice);
 }
 
 /**
