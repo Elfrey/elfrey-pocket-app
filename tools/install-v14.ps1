@@ -5,9 +5,13 @@ Foundry v14 отдаёт HTML-файлы из папки данных как о�
 адресу modules\elfrey-pocket-app\app.html. Скрипт создаёт junction из каталога public\ внутри Foundry в папку
 модуля; в public\ такого ограничения нет. После этого приложение доступно по адресу  https://<ваш-foundry>/pocket/app.html
 
-Запуск (PowerShell):   .\tools\install-v14.ps1 [-Foundry "C:\...\resources\app"]
-  -Foundry — папка *программы* Foundry, содержащая public\. Если не указана, скрипт попробует найти её сам,
-  а если не найдёт — спросит. Если Foundry установлен в Program Files, запускайте PowerShell «от имени администратора».
+Запуск — из PowerShell «от имени администратора» (нужно, если Foundry установлен в Program Files), по полному пути;
+переходить в папку модуля не нужно, окно может оставаться в C:\Windows\System32:
+  powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\FoundryVTT\Data\modules\elfrey-pocket-app\tools\install-v14.ps1"
+Путь в кавычках рассчитан на стандартную папку данных Foundry; если она другая, подставьте свою.
+Необязательный параметр -Foundry "C:\...\resources\app" — папка *программы* Foundry, содержащая public\.
+  Если не указан, скрипт попробует найти её сам, а если не найдёт — спросит.
+Подробная инструкция с разбором ошибок — в README.md модуля, раздел «Foundry v14: запуск скрипта установки».
 Повторяйте после каждого обновления Foundry: обновление заменяет папку программы, и ссылка пропадает.
 #>
 param([string]$Foundry = "")

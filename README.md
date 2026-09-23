@@ -10,13 +10,74 @@
    ```
    https://github.com/Elfrey/elfrey-pocket-app/releases/latest/download/module.json
    ```
-2. **Только для Foundry v14** — один разовый шаг на компьютере, где запущен Foundry (v14 иначе не отдаёт страницу приложения). Повторяйте его после каждого обновления Foundry:
-   - **macOS / Linux:** `sh Data/modules/elfrey-pocket-app/tools/install-v14.sh`
-   - **Windows:** правый клик по PowerShell → *Запуск от имени администратора* → `.\Data\modules\elfrey-pocket-app\tools\install-v14.ps1`
-
-   Скрипт сам найдёт папку Foundry или спросит путь к ней (та папка, где лежит `public/`). Перезапускать Foundry не нужно.
+2. **Только для Foundry v14** — один разовый шаг на компьютере (сервере), где запущен Foundry: нужно запустить скрипт из папки модуля. Как именно — в следующем разделе.
 
 На Foundry v13 второй шаг не требуется.
+
+### Foundry v14: запуск скрипта установки
+
+**Зачем.** Foundry v14 не отдаёт HTML-страницы из папки данных, поэтому страницу приложения нельзя открыть напрямую. Скрипт создаёт ссылку на папку модуля из папки *программы* Foundry, где такого ограничения нет. Запускать его нужно на том компьютере, где работает Foundry, и **повторять после каждого обновления Foundry** — обновление заменяет папку программы, и ссылка пропадает. Перезапускать Foundry после скрипта не нужно.
+
+**Где лежит скрипт.** В папке модуля, внутри папки данных Foundry:
+
+```
+<папка данных Foundry>\Data\modules\elfrey-pocket-app\tools\install-v14.ps1   (Windows)
+<папка данных Foundry>/Data/modules/elfrey-pocket-app/tools/install-v14.sh    (macOS / Linux)
+```
+
+Папку данных показывает сам Foundry: стартовый экран → *Configuration* (Настройки) → поле *User Data Path* (Путь к данным пользователя). Если вы её не меняли, она стандартная:
+
+| ОС | Папка данных Foundry по умолчанию |
+| --- | --- |
+| Windows | `C:\Users\<имя пользователя>\AppData\Local\FoundryVTT` |
+| macOS | `~/Library/Application Support/FoundryVTT` |
+| Linux | `~/.local/share/FoundryVTT` |
+
+Не путайте её с папкой *программы* Foundry (на Windows обычно `C:\Program Files\Foundry Virtual Tabletop`) — ту скрипт найдёт сам или спросит.
+
+#### Windows
+
+1. Откройте PowerShell **от имени администратора**: Пуск → наберите `PowerShell` → правый клик по найденному → *Запуск от имени администратора* (в Windows 11 подойдёт и Win+X → *Терминал (Администратор)*). Права администратора нужны, потому что Foundry обычно установлен в `Program Files`.
+2. Окно откроется в папке `C:\Windows\System32` (или в вашей домашней папке) — это нормально. Переходить в папку модуля не нужно: скрипт запускается по **полному** пути. Скопируйте команду целиком, вставьте в окно (правый клик или Ctrl+V) и нажмите Enter:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\FoundryVTT\Data\modules\elfrey-pocket-app\tools\install-v14.ps1"
+   ```
+
+   Команда рассчитана на стандартную папку данных. Если у вас другая, замените путь в кавычках на свой, например `"D:\FoundryData\Data\modules\elfrey-pocket-app\tools\install-v14.ps1"`. Точный путь проще всего взять из Проводника: откройте папку `tools` модуля, правый клик по `install-v14.ps1` → *Копировать как путь* (в Windows 10 — правый клик с зажатым Shift), затем в PowerShell наберите `powershell -ExecutionPolicy Bypass -File ` и вставьте скопированное.
+3. Скрипт сам ищет папку программы Foundry. Если не нашёл, он напишет `Путь до Foundry:` — введите папку, куда установлен сам Foundry (обычно `C:\Program Files\Foundry Virtual Tabletop`; у сборки на Node — распакованная папка, внутри которой есть `resources\app\public` или `public`), и нажмите Enter. Папку можно указать и сразу — добавьте в конец команды ` -Foundry "C:\Program Files\Foundry Virtual Tabletop"`.
+4. Успех — строка `Готово: ... -> ...`. Окно можно закрывать, Foundry перезапускать не нужно.
+
+Если что-то пошло не так:
+
+| Сообщение | Причина и что делать |
+| --- | --- |
+| `Не удается найти путь ".\Data\modules\..."`, `Имя ".\Data\..." не распознано` (*The term '.\Data\...' is not recognized*) | Скрипт запущен относительным путём из чужой папки — обычно из `C:\Windows\System32`. Используйте полный путь, как в команде выше. |
+| `Невозможно загрузить файл ... выполнение сценариев отключено в этой системе` (*running scripts is disabled on this system*) | Скрипт запущен без `-ExecutionPolicy Bypass`. Скопируйте команду выше целиком, а не только путь к файлу. |
+| `Не удается найти путь "$env:LOCALAPPDATA\..."` — путь так и остался с `$env:` | Команда вставлена в командную строку (cmd), а не в PowerShell. Откройте PowerShell, как в шаге 1, или впишите путь целиком, без `$env:LOCALAPPDATA`. |
+| `Не удалось создать ссылку ... запустите PowerShell от имени администратора` | Окно открыто без прав администратора. Закройте его и откройте заново, как в шаге 1. |
+| `Папка Foundry указана неверно: ... нет public\` | Вместо папки программы Foundry указана папка данных (та, где лежит `Data\`). Нужна папка, внутри которой есть `resources\app\public` — обычно `C:\Program Files\Foundry Virtual Tabletop`. |
+
+#### macOS / Linux
+
+1. Откройте терминал: на macOS — Spotlight (⌘ Space) → «Терминал» или *Программы → Утилиты → Терминал*; на Linux — обычный терминал, а если Foundry работает на удалённом сервере — подключитесь к нему по SSH.
+2. Выполните команду с полным путём к скрипту (переходить в папку модуля не нужно). Для стандартной папки данных:
+
+   macOS:
+   ```sh
+   sh "$HOME/Library/Application Support/FoundryVTT/Data/modules/elfrey-pocket-app/tools/install-v14.sh"
+   ```
+
+   Linux:
+   ```sh
+   sh "$HOME/.local/share/FoundryVTT/Data/modules/elfrey-pocket-app/tools/install-v14.sh"
+   ```
+
+   Если папка данных другая (например, сервер запущен с `--dataPath=/home/foundry/data`), подставьте её: `sh /home/foundry/data/Data/modules/elfrey-pocket-app/tools/install-v14.sh`. Кавычки вокруг пути обязательны, если в нём есть пробел (как в стандартном пути macOS). На macOS путь можно не набирать: введите `sh ` и перетащите файл `install-v14.sh` из Finder в окно Терминала — путь вставится сам.
+3. Скрипт сам ищет папку программы Foundry. Если не нашёл, он спросит `Путь до Foundry:` — введите папку, где лежит `public/`: у десктопного приложения на macOS это `/Applications/Foundry Virtual Tabletop.app/Contents/Resources/app`, у серверной сборки на Node — распакованная папка Foundry (внутри неё `resources/app/public`). Папку можно передать сразу, первым аргументом: `sh .../install-v14.sh /opt/foundryvtt`.
+4. Успех — строка `Готово: ... -> ...`. Перезапускать Foundry не нужно.
+
+Если скрипт завершился с `Permission denied` — папка программы Foundry принадлежит другому пользователю (например, `/opt/foundryvtt` под root). Повторите ту же команду, добавив в начало `sudo `.
 
 ## Запуск (игроки)
 
