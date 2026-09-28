@@ -1931,10 +1931,16 @@ body.pocket5e-standalone #notifications {
 }
 
 .pocket5e-hp-card,
+.pocket5e-stat,
 .pocket5e-ability-save,
 .pocket5e-ability-check,
 .pocket5e-row {
   font-family: var(--font-sans-condensed, var(--font-primary, "Signika", sans-serif));
+}
+
+.pocket5e-stat span,
+.pocket5e-stat strong {
+  font-weight: 600;
 }
 
 .pocket5e-ability-check,
