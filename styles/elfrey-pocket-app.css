@@ -604,20 +604,26 @@ body.pocket5e-mobile .application:not(.pocket5e-app):not(.pocket5e-fullsheet) {
   font-size: 16px;
 }
 
-/* Keep pp-dice's focused input compact instead of turning it into a full-width bottom sheet. */
+/* Keep pp-dice's focused input compact and retain its desktop-style horizontal layout. */
 @media (max-width: 600px) {
-  body.pocket5e-mobile .application.pp-dice-window {
+  body.pocket5e-mobile .application.pp-dice-window:not(.pocket5e-app):not(.pocket5e-fullsheet) {
     left: 50% !important;
     right: auto !important;
     top: 50% !important;
     bottom: auto !important;
-    width: min(440px, calc(100vw - 24px)) !important;
-    max-width: min(440px, calc(100vw - 24px)) !important;
+    width: min(550px, calc(100vw - 24px)) !important;
+    max-width: min(550px, calc(100vw - 24px)) !important;
+    height: auto !important;
     max-height: calc(100dvh - var(--pocket5e-safe-top) - var(--pocket5e-safe-bottom) - 24px) !important;
     transform: translate(-50%, -50%) !important;
     border: 1px solid var(--pocket5e-border);
     border-radius: 12px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .window-header {
+    min-height: 0;
+    padding: 6px 8px;
   }
 
   body.pocket5e-mobile .application.pp-dice-window .window-content {
@@ -627,41 +633,119 @@ body.pocket5e-mobile .application:not(.pocket5e-app):not(.pocket5e-fullsheet) {
     padding: 8px;
   }
 
-  body.pocket5e-mobile .pp-dice-window .pp-dice-dialog-content {
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-dialog-content {
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box;
     gap: 8px;
     padding: 6px;
   }
 
-  body.pocket5e-mobile .pp-dice-window .pp-dice-header {
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
     gap: 10px;
     padding-bottom: 6px;
   }
 
-  body.pocket5e-mobile .pp-dice-window .pp-dice-actor-img {
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-actor-img {
+    display: block;
     width: 48px !important;
     height: 48px !important;
     flex: 0 0 48px;
     object-fit: cover;
   }
 
-  body.pocket5e-mobile .pp-dice-window .pp-dice-title { font-size: 1.05em; }
-  body.pocket5e-mobile .pp-dice-window .pp-dice-body { gap: 8px; }
-  body.pocket5e-mobile .pp-dice-window .pp-dice-group { padding: 7px 8px; }
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-header-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
 
-  body.pocket5e-mobile .pp-dice-window input.die-input {
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-title {
+    margin: 0;
+    font-size: 1.05em;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-subtitle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-group {
+    padding: 7px 8px;
+    border: 1px solid var(--pp-dice-border, #444955);
+    border-radius: 6px;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-group-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 0.85em;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-inputs {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window input.die-input {
+    box-sizing: border-box;
     width: 58px;
     height: 44px;
     min-height: 44px;
+    padding: 4px;
+    text-align: center;
     font-size: 1.1em;
   }
 
-  body.pocket5e-mobile .pp-dice-window .pp-dice-footer {
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-hint-bar {
+    text-align: center;
+    padding: 2px 4px;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-hint-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75em;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-footer {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between !important;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 2px;
     padding-top: 8px;
+    border-top: 1px solid var(--pp-dice-border, #444955);
   }
 
-  body.pocket5e-mobile .pp-dice-window .pp-dice-footer button {
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-footer button {
+    display: inline-flex;
+    align-items: center;
+    width: auto;
     min-height: 44px;
     padding: 7px 9px;
     font-size: 0.9em;
