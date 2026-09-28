@@ -1913,19 +1913,6 @@ body.pocket5e-standalone #notifications {
   background: transparent;
 }
 
-.pocket5e-tabbtn.active::before {
-  content: "";
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  right: auto;
-  width: 22px;
-  height: 2px;
-  border-radius: 0;
-  background: var(--pocket5e-accent);
-  transform: translateX(-50%);
-}
-
 .pocket5e-card {
   background: linear-gradient(145deg, color-mix(in srgb, var(--pocket5e-surface) 97%, white), var(--pocket5e-surface) 60%);
   border-color: color-mix(in srgb, var(--pocket5e-border) 86%, var(--pocket5e-accent));
@@ -2066,10 +2053,6 @@ body.pocket5e-standalone #notifications {
 
 .pocket5e-hp-pill {
   border-radius: 3px;
-}
-
-.pocket5e-shell .pocket5e-tabbtn.active::before {
-  top: 3px;
 }
 
 :root[data-pocket5e-theme="light"] .pocket5e-card {
