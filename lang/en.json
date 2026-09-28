@@ -3,7 +3,7 @@
     "Settings": {
       "Mode": {
         "Name": "Send phones to the mobile app",
-        "Hint": "When a touch device with a narrow screen opens the regular Foundry client, redirect it to the Elfrey Pocket App app page (modules/elfrey-pocket-app/app.html). On/Off force the behaviour regardless of the device. Can also be set per session with ?mobile=1 or ?mobile=0 in the /game URL.",
+        "Hint": "When a touch device with a narrow screen opens the regular Foundry client, redirect it to the Gorka Pocket App app page (modules/elfrey-pocket-app/app.html). On/Off force the behaviour regardless of the device. Can also be set per session with ?mobile=1 or ?mobile=0 in the /game URL.",
         "Auto": "Auto-detect",
         "On": "Always redirect",
         "Off": "Never redirect"
@@ -27,8 +27,8 @@
       "ForcedUsers": {
         "Name": "Players sent to the mobile app",
         "Label": "Choose players",
-        "Hint": "These players always land in Elfrey Pocket App when they open /game, whatever device they use.",
-        "Title": "Elfrey Pocket App: players",
+        "Hint": "These players always land in Gorka Pocket App when they open /game, whatever device they use.",
+        "Title": "Gorka Pocket App: players",
         "Intro": "Checked players are redirected to the mobile app when they open the regular client.",
         "Empty": "No players in this world.",
         "Save": "Save"
@@ -46,7 +46,7 @@
       }
     },
     "Notify": {
-      "NotDnd5e": "Elfrey Pocket App only works with the dnd5e system."
+      "NotDnd5e": "Gorka Pocket App only works with the dnd5e system."
     },
     "Tabs": {
       "overview": "Overview",
