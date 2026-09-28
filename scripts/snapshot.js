@@ -228,7 +228,12 @@ function showNotice(wrapper, record) {
     <header class="pocket5e-drawer-head"><div class="pocket5e-row2-info"><strong></strong></div></header>
     <div class="pocket5e-drawer-body">
       <p class="pocket5e-snapshot-notice-text"></p>
-      <label class="pocket5e-remote-row"><span class="name"></span><input type="checkbox"></label>
+      <label class="pocket5e-remote-row">
+        <span class="pocket5e-snapshot-notice-choice">
+          <span class="name"></span><span class="pocket5e-snapshot-notice-state" aria-live="polite"></span>
+        </span>
+        <input type="checkbox">
+      </label>
     </div>
     <footer class="pocket5e-targets-foot pocket5e-reaction-foot">
       <button type="button" class="pocket5e-btn pocket5e-btn-primary"></button>
@@ -237,12 +242,28 @@ function showNotice(wrapper, record) {
   notice.querySelector("strong").textContent = strings.title ?? "";
   notice.querySelector(".pocket5e-snapshot-notice-text").textContent = strings.text ?? "";
   notice.querySelector("label .name").textContent = strings.dontShow ?? "";
+  const checkbox = notice.querySelector("input[type=checkbox]");
+  const state = notice.querySelector(".pocket5e-snapshot-notice-state");
+  checkbox.checked = false;
+  checkbox.setAttribute("aria-label", strings.dontShow ?? "");
+  const savePreference = () => {
+    try {
+      if ( checkbox.checked ) localStorage.setItem(NOTICE_OFF, "1");
+      else localStorage.removeItem(NOTICE_OFF);
+    } catch(err) { /* private mode: keep the preference for this notice only */ }
+  };
+  const updatePreference = () => {
+    state.textContent = checkbox.checked
+      ? (strings.dontShowEnabled ?? "✓")
+      : (strings.dontShowDisabled ?? "○");
+    savePreference();
+  };
+  checkbox.addEventListener("change", updatePreference);
+  updatePreference();
   const button = notice.querySelector("footer button");
   button.textContent = strings.ok ?? "OK";
   const dismiss = () => {
-    if ( notice.querySelector("input[type=checkbox]").checked ) {
-      try { localStorage.setItem(NOTICE_OFF, "1"); } catch(err) { /* ignore */ }
-    }
+    savePreference();
     notice.remove();
   };
   button.addEventListener("click", dismiss);
@@ -257,7 +278,10 @@ function showNotice(wrapper, record) {
  */
 function wireTabs(wrapper, record) {
   wrapper.addEventListener("click", event => {
-    const button = event.target.closest("[data-tab], [data-action]");
+    const target = event.target instanceof Element ? event.target : null;
+    if ( target?.closest(".pocket5e-snapshot-notice") ) return;
+    const button = target?.closest("[data-tab], [data-action]");
+    if ( !button ) return;
     event.preventDefault();
     if ( button?.dataset?.action === "openItem" ) {
       const id = button.closest("[data-item-id]")?.dataset.itemId;

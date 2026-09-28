@@ -14,7 +14,7 @@
       },
       "FastRoll": {
         "Name": "Fast rolls",
-        "Hint": "Skip the dnd5e roll configuration dialog for checks, saves and skills. Also toggled with the ⚡ button in the app."
+        "Hint": "Skip the dnd5e roll configuration dialog for checks, saves and skills. Foundry manual rolls are still honored. Also toggled with the ⚡ button in the app."
       },
       "Theme": {
         "Name": "Theme",
@@ -89,7 +89,7 @@
       "RollAdvantage": "Advantage",
       "RollDisadvantage": "Disadvantage",
       "FastRoll": "Fast rolls",
-      "FastRollHint": "Skip the roll configuration dialog",
+      "FastRollHint": "Skip the roll configuration dialog (Foundry manual rolls are still honored)",
       "Successes": "Successes",
       "Failures": "Failures",
       "DeathSave": "Death save",
@@ -148,7 +148,8 @@
       "Roll": "Roll",
       "Empty": "Nothing to use yet — items and spells with activities will show up here.",
       "NoAttack": "This activity has no attack roll.",
-      "NoDamage": "This activity has no damage roll."
+      "NoDamage": "This activity has no damage roll.",
+      "ManualRollUnavailable": "Foundry manual rolls are permitted, but its manual dice method is unavailable."
     },
     "Relay": {
       "Sent": "Sent to the GM — the card will appear in chat.",
@@ -237,6 +238,8 @@
         "Title": "Your sheet is from this phone's memory",
         "Text": "The world is still loading. Until it finishes you can read the sheet, spells and items; rolls, actions and chat come back the moment loading is done — the sheet turns live on its own.",
         "DontShow": "Don't show again",
+        "DontShowEnabled": "Enabled — this notice will stay hidden",
+        "DontShowDisabled": "Disabled — this notice will appear again",
         "Ok": "Got it"
       }
     },
