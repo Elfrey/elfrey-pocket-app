@@ -26,9 +26,9 @@
   --pocket5e-text: #f1ebdd;
   --pocket5e-muted: #aaa797;
   --pocket5e-accent: #d0ad69;
-  --pocket5e-danger: #d36a5f;
-  --pocket5e-heal: #75ad83;
-  --pocket5e-hp: #ae514b;
+  --pocket5e-danger: #e34d4d;
+  --pocket5e-heal: #48b86c;
+  --pocket5e-hp: #c9363f;
 }
 
 /* ---------- Standalone page ---------- */
@@ -1792,9 +1792,9 @@ body.pocket5e-standalone #notifications {
   --pocket5e-text: #28251e;
   --pocket5e-muted: #706b5e;
   --pocket5e-accent: #906c2f;
-  --pocket5e-danger: #a4473e;
-  --pocket5e-heal: #447956;
-  --pocket5e-hp: #a94c45;
+  --pocket5e-danger: #bf302f;
+  --pocket5e-heal: #21844a;
+  --pocket5e-hp: #c52e35;
 }
 :root[data-pocket5e-theme="light"] .pocket5e-chip img { filter: none; }
 :root[data-pocket5e-theme="light"] .pocket5e-btn-primary,
@@ -1806,7 +1806,7 @@ body.pocket5e-standalone #notifications {
 :root[data-pocket5e-theme="light"] .pocket5e-hp-pill b { color: #dff1ff; }
 :root[data-pocket5e-theme="light"] .pocket5e-hp-temp,
 :root[data-pocket5e-theme="light"] .pocket5e-hp-modes > button.active.mode-temp { color: #2a6fa8; }
-:root[data-pocket5e-theme="light"] .pocket5e-hp-editor.mode-temp .pocket5e-hp-apply { background: #2a6fa8; border-color: #2a6fa8; color: #ffffff; }
+:root[data-pocket5e-theme="light"] .pocket5e-hp-editor.mode-temp .pocket5e-hp-apply { background: #176fba; border-color: #176fba; color: #ffffff; }
 :root[data-pocket5e-theme="light"] .pocket5e-hp-apply { color: #ffffff !important; }
 :root[data-pocket5e-theme="light"] .pocket5e-pip.ex.filled { color: #ffffff; }
 :root[data-pocket5e-theme="light"] .pocket5e-chip.active { color: #ffffff; }
@@ -1986,7 +1986,7 @@ body.pocket5e-standalone #notifications {
 }
 
 .pocket5e-hp-bar i {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--pocket5e-hp) 76%, #702d31), var(--pocket5e-hp));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pocket5e-hp) 78%, #702d31), var(--pocket5e-hp));
 }
 
 .pocket5e-stat {
