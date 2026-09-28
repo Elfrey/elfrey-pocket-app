@@ -603,6 +603,72 @@ body.pocket5e-mobile .application:not(.pocket5e-app):not(.pocket5e-fullsheet) {
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
   font-size: 16px;
 }
+
+/* Keep pp-dice's focused input compact instead of turning it into a full-width bottom sheet. */
+@media (max-width: 600px) {
+  body.pocket5e-mobile .application.pp-dice-window {
+    left: 50% !important;
+    right: auto !important;
+    top: 50% !important;
+    bottom: auto !important;
+    width: min(440px, calc(100vw - 24px)) !important;
+    max-width: min(440px, calc(100vw - 24px)) !important;
+    max-height: calc(100dvh - var(--pocket5e-safe-top) - var(--pocket5e-safe-bottom) - 24px) !important;
+    transform: translate(-50%, -50%) !important;
+    border: 1px solid var(--pocket5e-border);
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .window-content {
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px;
+  }
+
+  body.pocket5e-mobile .pp-dice-window .pp-dice-dialog-content {
+    gap: 8px;
+    padding: 6px;
+  }
+
+  body.pocket5e-mobile .pp-dice-window .pp-dice-header {
+    gap: 10px;
+    padding-bottom: 6px;
+  }
+
+  body.pocket5e-mobile .pp-dice-window .pp-dice-actor-img {
+    width: 48px !important;
+    height: 48px !important;
+    flex: 0 0 48px;
+    object-fit: cover;
+  }
+
+  body.pocket5e-mobile .pp-dice-window .pp-dice-title { font-size: 1.05em; }
+  body.pocket5e-mobile .pp-dice-window .pp-dice-body { gap: 8px; }
+  body.pocket5e-mobile .pp-dice-window .pp-dice-group { padding: 7px 8px; }
+
+  body.pocket5e-mobile .pp-dice-window input.die-input {
+    width: 58px;
+    height: 44px;
+    min-height: 44px;
+    font-size: 1.1em;
+  }
+
+  body.pocket5e-mobile .pp-dice-window .pp-dice-footer {
+    gap: 8px;
+    margin-top: 2px;
+    padding-top: 8px;
+  }
+
+  body.pocket5e-mobile .pp-dice-window .pp-dice-footer button {
+    min-height: 44px;
+    padding: 7px 9px;
+    font-size: 0.9em;
+    justify-content: center;
+  }
+}
+
 /* Dim the app behind non-modal windows (modal <dialog>s bring their own ::backdrop) */
 body.pocket5e-mobile .application.pocket5e-sheet-dialog:not(:modal)::before {
   content: "";
