@@ -751,6 +751,16 @@ body.pocket5e-mobile .application:not(.pocket5e-app):not(.pocket5e-fullsheet) {
     font-size: 0.9em;
     justify-content: center;
   }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-footer .btn-submit {
+    color: #fff !important;
+    background: #00773d !important;
+    border: 1px solid #00994d !important;
+  }
+
+  body.pocket5e-mobile .application.pp-dice-window .pp-dice-footer .btn-submit:active {
+    background: #00994d !important;
+  }
 }
 
 /* Dim the app behind non-modal windows (modal <dialog>s bring their own ::backdrop) */
