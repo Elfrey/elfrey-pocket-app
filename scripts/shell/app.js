@@ -506,13 +506,24 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       actor: this.actor, activity, singleTarget: true, requireTarget: true
     });
     if ( !picked ) return null;
+    const target = fromUuidSync(picked[0]);
+    if ( !target?.actor ) throw new Error(game.i18n.localize("POCKET5E.Targets.Stale"));
+    const targetDescriptor = {
+      actor: target.actor.uuid,
+      ac: target.actor.statuses.has("coverTotal") ? null : (target.actor.system.attributes?.ac?.value ?? null),
+      img: target.texture?.src,
+      name: target.name,
+      token: target.uuid
+    };
     const { advantage, disadvantage } = this.rollOptions(event);
     return rollActivityAttack(activity, {
       event,
       advantage,
       disadvantage,
       fast: this.fastRoll,
-      rollMode: getRollMode()
+      rollMode: getRollMode(),
+      target: targetDescriptor.ac ?? undefined,
+      targets: [targetDescriptor]
     });
   }
 

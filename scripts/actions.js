@@ -308,12 +308,24 @@ export function usageSummary(activity, config) {
  * @param {boolean} [options.fast]
  * @param {string} [options.rollMode]
  * @param {object} [options.message]
+ * @param {number} [options.target]
+ * @param {object[]} [options.targets]
  */
-export async function rollActivityAttack(activity, { event, advantage=false, disadvantage=false, fast=false, rollMode, message }={}) {
+export async function rollActivityAttack(activity, {
+  event, advantage=false, disadvantage=false, fast=false, rollMode, message, target, targets
+}={}) {
   if ( typeof activity?.rollAttack !== "function" ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoAttack"));
   const config = { event };
   if ( advantage ) config.advantage = true;
   if ( disadvantage ) config.disadvantage = true;
+  if ( target !== undefined ) config.target = target;
+  if ( targets ) {
+    message ??= {};
+    message.rollMode ??= rollMode ?? getRollMode();
+    message.data ??= {};
+    message.data.system ??= {};
+    message.data.system.targets = targets;
+  }
   return withRollSpeaker(activity, () => activity.rollAttack(
     config, fast ? { configure: false } : {}, message ?? { rollMode: rollMode ?? getRollMode() }
   ));
