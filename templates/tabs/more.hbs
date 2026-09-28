@@ -4,6 +4,23 @@
   {{#if (eq section.id "biography")}}{{> pocket5e.sectionBiography}}{{/if}}
   {{#if (eq section.id "journal")}}{{> pocket5e.sectionJournal}}{{/if}}
   {{#if (eq section.id "effects")}}{{> pocket5e.sectionEffects}}{{/if}}
+  {{#if (eq section.id "movement")}}
+  <div class="pocket5e-card pocket5e-movement">
+    <h2>{{localize "POCKET5E.More.Movement"}}</h2>
+    <p class="pocket5e-muted">{{localize "POCKET5E.Movement.Hint"}}</p>
+    <div class="pocket5e-movement-pad" role="group" aria-label="{{localize 'POCKET5E.More.Movement'}}">
+      <button type="button" data-action="moveToken" data-direction="nw" aria-label="{{localize 'POCKET5E.Movement.NW'}}"><i class="fa-solid fa-arrow-up-left"></i></button>
+      <button type="button" data-action="moveToken" data-direction="n" aria-label="{{localize 'POCKET5E.Movement.N'}}"><i class="fa-solid fa-arrow-up"></i></button>
+      <button type="button" data-action="moveToken" data-direction="ne" aria-label="{{localize 'POCKET5E.Movement.NE'}}"><i class="fa-solid fa-arrow-up-right"></i></button>
+      <button type="button" data-action="moveToken" data-direction="w" aria-label="{{localize 'POCKET5E.Movement.W'}}"><i class="fa-solid fa-arrow-left"></i></button>
+      <span class="pocket5e-movement-center"><i class="fa-solid fa-person-walking"></i></span>
+      <button type="button" data-action="moveToken" data-direction="e" aria-label="{{localize 'POCKET5E.Movement.E'}}"><i class="fa-solid fa-arrow-right"></i></button>
+      <button type="button" data-action="moveToken" data-direction="sw" aria-label="{{localize 'POCKET5E.Movement.SW'}}"><i class="fa-solid fa-arrow-down-left"></i></button>
+      <button type="button" data-action="moveToken" data-direction="s" aria-label="{{localize 'POCKET5E.Movement.S'}}"><i class="fa-solid fa-arrow-down"></i></button>
+      <button type="button" data-action="moveToken" data-direction="se" aria-label="{{localize 'POCKET5E.Movement.SE'}}"><i class="fa-solid fa-arrow-down-right"></i></button>
+    </div>
+  </div>
+  {{/if}}
   {{else}}
   <div class="pocket5e-card pocket5e-placeholder">
     <i class="fa-solid fa-ellipsis"></i>

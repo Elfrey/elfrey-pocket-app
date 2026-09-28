@@ -154,7 +154,9 @@ export class ItemDrawer extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #onAttack(event, target) {
-    await this.#guard(target, () => rollActivityAttack(this.#activity(target), this.shell?.rollOptions(event) ?? { event }));
+    await this.#guard(target, () => this.shell?.rollAttack
+      ? this.shell.rollAttack(this.#activity(target), event)
+      : rollActivityAttack(this.#activity(target), { event }));
     this.shell?.consumeRollMode();
   }
 

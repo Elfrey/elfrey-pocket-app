@@ -1,5 +1,5 @@
 /**
- * TargetPicker — bottom sheet listing the tokens the player can aim at before a use goes through the GM relay
+ * TargetPicker — bottom sheet listing tokens the player can aim at before a relayed use or a standalone attack roll
  * (the phone has no canvas, hence no game.user.targets of its own).
  *
  * Candidates come from the GM (relay.js queryTargets): what the character's token can see and how far it is,
@@ -9,7 +9,7 @@
  */
 import { MODULE_ID } from "../settings.js";
 import { activeCombat, fmtLabel, loc } from "../actions.js";
-import { queryTargets } from "../relay.js";
+import { queryTargets, requestTargetPing } from "../relay.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const L = key => game.i18n.localize(key);
@@ -73,13 +73,17 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {object} options
    * @param {Actor} options.actor
    * @param {Activity} options.activity
+   * @param {boolean} [options.singleTarget]
+   * @param {boolean} [options.requireTarget]
    * @returns {Promise<string[]|null>}
    */
-  static async pick({ actor, activity }) {
+  static async pick({ actor, activity, singleTarget=false, requireTarget=false }) {
     this.#instance?.close();
     const app = this.#instance = new this();
     app.actor = actor;
     app.activity = activity;
+    app.singleTarget = singleTarget;
+    app.requireTarget = requireTarget;
     const promise = new Promise(resolve => { app.#resolve = resolve; });
     try { app.remote = await queryTargets(actor, activity); } catch(err) { app.remote = null; }
     if ( app !== TargetPicker.#instance ) return null;      // superseded while waiting
@@ -112,6 +116,8 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
   activity;
   /** The GM's answer (relay.js queryTargets) or null. */
   remote = null;
+  singleTarget = false;
+  requireTarget = false;
   /** Show tokens the GM judged out of range too. */
   showFar = false;
   #selected = new Set();
@@ -184,6 +190,8 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
     context.farCount = farCount;
     context.showFar = this.showFar;
     context.count = this.#selected.size;
+    context.requireTarget = this.requireTarget;
+    context.confirmLabel = L(this.requireTarget ? "POCKET5E.Targets.Choose" : "POCKET5E.Targets.Use");
     return context;
   }
 
@@ -222,15 +230,24 @@ export class TargetPicker extends HandlebarsApplicationMixin(ApplicationV2) {
     const uuid = target.dataset.uuid;
     if ( !uuid ) return;
     if ( this.#selected.has(uuid) ) this.#selected.delete(uuid);
-    else this.#selected.add(uuid);
+    else {
+      if ( this.singleTarget ) this.#selected.clear();
+      this.#selected.add(uuid);
+      requestTargetPing(this.actor, uuid);
+    }
     // Imperative update: keeps the list's scroll position.
-    target.classList.toggle("on", this.#selected.has(uuid));
-    const icon = target.querySelector("i.check");
-    if ( icon ) icon.className = `fa-solid check ${this.#selected.has(uuid) ? "fa-square-check" : "fa-square"}`;
+    for ( const button of this.element.querySelectorAll("[data-action=toggleTarget]") ) {
+      const selected = this.#selected.has(button.dataset.uuid);
+      button.classList.toggle("on", selected);
+      button.setAttribute("aria-pressed", String(selected));
+      const icon = button.querySelector("i.check");
+      if ( icon ) icon.className = `fa-solid check ${selected ? "fa-square-check" : "fa-square"}`;
+    }
     const confirm = this.element.querySelector("[data-action=confirmTargets]");
     if ( confirm ) {
       confirm.disabled = !this.#selected.size;
-      confirm.querySelector("span").textContent = `${L("POCKET5E.Targets.Use")} (${this.#selected.size})`;
+      const label = confirm.querySelector("span");
+      if ( label ) label.textContent = `${L(this.requireTarget ? "POCKET5E.Targets.Choose" : "POCKET5E.Targets.Use")} (${this.#selected.size})`;
     }
   }
 

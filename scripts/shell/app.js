@@ -12,11 +12,11 @@
 import { MODULE_ID, SETTINGS, MODE } from "../settings.js";
 import {
   performRoll, applyHP, setExhaustion, setDeathSaves, toggleCondition, endConcentration, endTurn, actorSummary,
-  setRollMode, useItem, rollActivityAttack, rollActivityDamage, rollActivityFormula, toggleEquipped, toggleAttuned,
+  setRollMode, useItem, rollActivityDamage, rollActivityFormula, toggleEquipped, toggleAttuned,
   changeQuantity, updateCurrency, togglePrepared, setSpellSlot, haptic, getRollMode,
   configureUsage, serializeUsage, usageSummary, chooseActivity, fmtLabel, usesText, loc
 } from "../actions.js";
-import { relayEnabled, designatedGM, needsTargets, requestUse } from "../relay.js";
+import { relayEnabled, designatedGM, needsTargets, requestUse, requestTokenMove, requestAttack } from "../relay.js";
 import { TargetPicker } from "./target-picker.js";
 import { THEMES, currentTheme, resolveTheme } from "../theme.js";
 import { prepareOverview, rollPrivacyContext } from "../tabs/overview.js";
@@ -125,6 +125,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       spellPrepareMode: PocketShell.#onSpellPrepareMode,
       moreMenu: PocketShell.#onMoreMenu,
       moreSection: PocketShell.#onMoreSection,
+      moveToken: PocketShell.#onMoveToken,
       effectToggle: PocketShell.#onEffectToggle,
       effectDelete: PocketShell.#onEffectDelete,
       bioEdit: PocketShell.#onBioEdit,
@@ -174,6 +175,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Second-level sections reachable from the "More" popup. */
   static SECTIONS = [
     { id: "actions",   icon: "fa-solid fa-hand-fist", label: "POCKET5E.Tabs.actions" },
+    { id: "movement",  icon: "fa-solid fa-gamepad",    label: "POCKET5E.More.Movement" },
     { id: "biography", icon: "fa-solid fa-book",      label: "POCKET5E.More.Biography" },
     { id: "journal",   icon: "fa-solid fa-feather",   label: "POCKET5E.More.Journal" },
     { id: "effects",   icon: "fa-solid fa-bolt",      label: "POCKET5E.More.Effects" }
@@ -299,6 +301,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
     context.section = current ? { ...current, label: L(current.label) } : null;
     switch ( current?.id ) {
       case "actions": prepareActions(this, context); break;
+      case "movement": break;
       case "biography": await prepareBiography(this, context); break;
       case "journal": await prepareJournal(this, context); break;
       case "effects": prepareEffects(this, context); break;
@@ -494,6 +497,23 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
     if ( config?.create?.measuredTemplate ) notice.push(game.i18n.localize("POCKET5E.Relay.TemplateByGM"));
     ui.notifications.info(notice.join(" "));
     return result;
+  }
+
+  /** Pick and target one token before rolling an attack from the phone. */
+  async rollAttack(activity, event) {
+    if ( !activity ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoAttack"));
+    const picked = await TargetPicker.pick({
+      actor: this.actor, activity, singleTarget: true, requireTarget: true
+    });
+    if ( !picked ) return null;
+    const { advantage, disadvantage } = this.rollOptions(event);
+    return requestAttack(activity, {
+      targetUuids: picked,
+      advantage,
+      disadvantage,
+      fast: this.fastRoll,
+      rollMode: getRollMode()
+    });
   }
 
   /** The advantage/disadvantage choice applies to one roll only. */
@@ -819,6 +839,20 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  static async #onMoveToken(event, target) {
+    const buttons = this.element.querySelectorAll("[data-action='moveToken']");
+    if ( Array.from(buttons).some(button => button.disabled) ) return;
+    buttons.forEach(button => { button.disabled = true; });
+    try {
+      await requestTokenMove(this.actor, target.dataset.direction);
+      haptic();
+    } catch(err) {
+      this.#error(err);
+    } finally {
+      buttons.forEach(button => { button.disabled = false; });
+    }
+  }
+
   static async #onEffectToggle(event, target) {
     const effect = effectFromTarget(this.actor, target);
     if ( effect ) await this.#guard(target, () => toggleEffect(effect));
@@ -927,7 +961,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onAttack(event, target) {
     const item = this.#itemFor(target);
     haptic();
-    await this.#guard(target, () => rollActivityAttack(this.#activityFor(item, target), this.rollOptions(event)));
+    await this.#guard(target, () => this.rollAttack(this.#activityFor(item, target), event));
     this.consumeRollMode();
   }
 
