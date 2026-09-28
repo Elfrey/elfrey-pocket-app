@@ -1933,7 +1933,7 @@ body.pocket5e-standalone #notifications {
 .pocket5e-hp-card,
 .pocket5e-ability-save,
 .pocket5e-row {
-  font-family: var(--font-primary, "Signika", sans-serif);
+  font-family: var(--font-sans-condensed, var(--font-primary, "Signika", sans-serif));
 }
 
 .pocket5e-hp-card {
