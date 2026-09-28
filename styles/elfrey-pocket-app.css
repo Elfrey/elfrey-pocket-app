@@ -13,7 +13,7 @@
 :root {
   --pocket5e-tap: 44px;
   --pocket5e-gap: 10px;
-  --pocket5e-radius: 12px;
+  --pocket5e-radius: 7px;
   --pocket5e-safe-top: env(safe-area-inset-top, 0px);
   --pocket5e-safe-bottom: env(safe-area-inset-bottom, 0px);
   --pocket5e-topbar-h: 60px;
@@ -1910,24 +1910,27 @@ body.pocket5e-standalone #notifications {
 
 .pocket5e-tabbtn.active {
   color: var(--pocket5e-accent);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--pocket5e-accent) 11%, transparent), transparent 72%);
+  background: transparent;
 }
 
 .pocket5e-tabbtn.active::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 24%;
-  right: 24%;
+  top: 4px;
+  left: 50%;
+  right: auto;
+  width: 22px;
   height: 2px;
-  border-radius: 0 0 2px 2px;
+  border-radius: 0;
   background: var(--pocket5e-accent);
+  transform: translateX(-50%);
 }
 
 .pocket5e-card {
   background: linear-gradient(145deg, color-mix(in srgb, var(--pocket5e-surface) 97%, white), var(--pocket5e-surface) 60%);
   border-color: color-mix(in srgb, var(--pocket5e-border) 86%, var(--pocket5e-accent));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  border-radius: var(--pocket5e-radius);
 }
 
 .pocket5e-card h2 {
@@ -1941,10 +1944,30 @@ body.pocket5e-standalone #notifications {
 }
 
 .pocket5e-hp-card {
-  overflow: hidden;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 2px;
+  overflow: visible;
   border-color: color-mix(in srgb, var(--pocket5e-hp) 48%, var(--pocket5e-border));
   background:
     linear-gradient(110deg, color-mix(in srgb, var(--pocket5e-hp) 12%, var(--pocket5e-surface)), var(--pocket5e-surface) 68%);
+}
+
+.pocket5e-hp-card > * {
+  flex: 0 0 auto;
+}
+
+.pocket5e-hp-main {
+  min-height: 38px;
+}
+
+.pocket5e-hp-bar {
+  width: 100%;
+}
+
+.pocket5e-hp-editor {
+  min-height: var(--pocket5e-tap);
 }
 
 .pocket5e-hp-main strong {
@@ -2029,6 +2052,26 @@ body.pocket5e-standalone #notifications {
   box-shadow: 0 2px 7px color-mix(in srgb, var(--pocket5e-accent) 20%, transparent);
 }
 
+.pocket5e-btn,
+.pocket5e-fastbtn,
+.pocket5e-search,
+.pocket5e-ability,
+.pocket5e-stat,
+.pocket5e-item-img img,
+.pocket5e-target-row,
+.pocket5e-drawer-panel,
+.pocket5e-drawer-head {
+  border-radius: 5px;
+}
+
+.pocket5e-hp-pill {
+  border-radius: 3px;
+}
+
+.pocket5e-shell .pocket5e-tabbtn.active::before {
+  top: 3px;
+}
+
 :root[data-pocket5e-theme="light"] .pocket5e-card {
   background: linear-gradient(145deg, #fffdf7, var(--pocket5e-surface) 74%);
   box-shadow: 0 2px 8px rgba(63, 49, 26, 0.07);
@@ -2046,6 +2089,10 @@ body.pocket5e-standalone #notifications {
 
 :root[data-pocket5e-theme="light"] .pocket5e-tabbar {
   background: #f8f5ec;
+}
+
+:root[data-pocket5e-theme="light"] .pocket5e-tabbtn.active {
+  background: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
