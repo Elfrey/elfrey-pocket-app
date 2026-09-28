@@ -407,6 +407,7 @@ body.pocket5e-standalone .watermark {
 
 .pocket5e-hp-main { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .pocket5e-hp-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--pocket5e-muted); }
+.pocket5e-hp-main > .pocket5e-hp-label { font-size: 0.9rem; font-weight: 700; }
 .pocket5e-hp-main strong { font-size: 1.8rem; font-variant-numeric: tabular-nums; }
 .pocket5e-hp-main em { font-style: normal; font-size: 1.1rem; color: var(--pocket5e-muted); }
 .pocket5e-hp-temp { color: #9fd3ff; font-weight: 600; }

@@ -18,6 +18,7 @@ import {
 } from "../actions.js";
 import { relayEnabled, designatedGM, needsTargets, requestUse, requestTokenMove } from "../relay.js";
 import { TargetPicker } from "./target-picker.js";
+import { logoutToLogin } from "./logout.js";
 import { THEMES, currentTheme, resolveTheme } from "../theme.js";
 import { prepareOverview, rollPrivacyContext } from "../tabs/overview.js";
 import { prepareActions } from "../tabs/actions.js";
@@ -732,8 +733,8 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
     window.location.href = foundry.utils.getRoute("game");
   }
 
-  static #onLogout() {
-    game.logOut();
+  static async #onLogout() {
+    await logoutToLogin();
   }
 
   static async #onSetTheme(event, target) {

@@ -4,6 +4,7 @@
 import { MODULE_ID } from "../settings.js";
 import { actorSummary } from "../actions.js";
 import { hideSnapshot } from "../snapshot.js";
+import { logoutToLogin } from "./logout.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -70,7 +71,7 @@ export class CharacterPicker extends HandlebarsApplicationMixin(ApplicationV2) {
     window.location.href = foundry.utils.getRoute("game");
   }
 
-  static #onLogout() {
-    game.logOut();
+  static async #onLogout() {
+    await logoutToLogin();
   }
 }
