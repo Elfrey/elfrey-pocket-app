@@ -12,11 +12,11 @@
 import { MODULE_ID, SETTINGS, MODE } from "../settings.js";
 import {
   performRoll, applyHP, setExhaustion, setDeathSaves, toggleCondition, endConcentration, endTurn, actorSummary,
-  setRollMode, useItem, rollActivityDamage, rollActivityFormula, toggleEquipped, toggleAttuned,
+  setRollMode, useItem, rollActivityAttack, rollActivityDamage, rollActivityFormula, toggleEquipped, toggleAttuned,
   changeQuantity, updateCurrency, togglePrepared, setSpellSlot, haptic, getRollMode,
   configureUsage, serializeUsage, usageSummary, chooseActivity, fmtLabel, usesText, loc
 } from "../actions.js";
-import { relayEnabled, designatedGM, needsTargets, requestUse, requestTokenMove, requestAttack } from "../relay.js";
+import { relayEnabled, designatedGM, needsTargets, requestUse, requestTokenMove } from "../relay.js";
 import { TargetPicker } from "./target-picker.js";
 import { THEMES, currentTheme, resolveTheme } from "../theme.js";
 import { prepareOverview, rollPrivacyContext } from "../tabs/overview.js";
@@ -499,16 +499,12 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
     return result;
   }
 
-  /** Pick and target one token before rolling an attack from the phone. */
+  /** Roll an attack directly from the player's client, without the GM relay or scene targets. */
   async rollAttack(activity, event) {
     if ( !activity ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoAttack"));
-    const picked = await TargetPicker.pick({
-      actor: this.actor, activity, singleTarget: true, requireTarget: true
-    });
-    if ( !picked ) return null;
     const { advantage, disadvantage } = this.rollOptions(event);
-    return requestAttack(activity, {
-      targetUuids: picked,
+    return rollActivityAttack(activity, {
+      event,
       advantage,
       disadvantage,
       fast: this.fastRoll,
