@@ -148,8 +148,7 @@
       "Roll": "Roll",
       "Empty": "Nothing to use yet — items and spells with activities will show up here.",
       "NoAttack": "This activity has no attack roll.",
-      "NoDamage": "This activity has no damage roll.",
-      "ManualRollUnavailable": "Foundry manual rolls are permitted, but its manual dice method is unavailable."
+      "NoDamage": "This activity has no damage roll."
     },
     "Relay": {
       "Sent": "Sent to the GM — the card will appear in chat.",

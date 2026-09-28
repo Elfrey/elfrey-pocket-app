@@ -47,42 +47,6 @@ export function isPublicRollMode(mode=getRollMode()) {
   return (mode === "publicroll") || (mode === "public");
 }
 
-let manualRollQueue = Promise.resolve();
-
-/**
- * Foundry stores manual dice selection per client. For a mobile roll, temporarily select its native manual
- * fulfillment method when the GM has granted the user permission, then restore the player's prior preferences.
- */
-function withManualRolls(action, manual=false) {
-  if ( !manual || !game.user.hasPermission("MANUAL_ROLLS") ) return action();
-
-  const fulfillment = CONFIG.Dice?.fulfillment;
-  const setting = globalThis.foundry?.dice?.Roll?.DICE_CONFIGURATION_SETTING;
-  const dice = Object.keys(fulfillment?.dice ?? {});
-  if ( !setting || !dice.length || !fulfillment?.methods?.manual ) {
-    throw new Error(game.i18n.localize("POCKET5E.Actions.ManualRollUnavailable"));
-  }
-
-  const queued = manualRollQueue.then(async () => {
-    const previous = foundry.utils.deepClone(game.settings.get("core", setting) ?? {});
-    const temporary = { ...previous };
-    for ( const denomination of dice ) temporary[denomination] = "manual";
-    await game.settings.set("core", setting, temporary);
-    try {
-      return await action();
-    } finally {
-      await game.settings.set("core", setting, previous);
-    }
-  });
-  manualRollQueue = queued.then(() => undefined, () => undefined);
-  return queued;
-}
-
-/** Fast rolls skip only dnd5e's configuration dialog; core dice fulfillment remains a separate setting. */
-function rollDialogOptions(fast) {
-  return fast ? { configure: false } : {};
-}
-
 /** The "public" mode id for the running core (v14 renamed it). */
 export function publicRollMode() {
   return CONFIG.ChatMessage?.modes ? "public" : "publicroll";
@@ -108,37 +72,31 @@ export function rollModeOptions() {
  * @param {Event} [options.event]         Originating UI event (dnd5e reads keyboard modifiers from it).
  * @param {boolean} [options.advantage]
  * @param {boolean} [options.disadvantage]
- * @param {boolean} [options.fast]
- * @param {boolean} [options.manual]        Skip the roll configuration dialog.
- * @param {boolean} [options.manual]      Use Foundry's manual dice method if the user is permitted.
+ * @param {boolean} [options.fast]        Skip the roll configuration dialog.
  */
-export async function performRoll(actor, spec, {
-  event, advantage=false, disadvantage=false, fast=false, manual=false
-}={}) {
+export async function performRoll(actor, spec, { event, advantage=false, disadvantage=false, fast=false }={}) {
   const [kind, key] = String(spec ?? "").split(":");
   const config = { event };
   if ( advantage ) config.advantage = true;
   if ( disadvantage ) config.disadvantage = true;
-  const dialog = rollDialogOptions(fast);
+  const dialog = fast ? { configure: false } : {};
   // Without the dialog dnd5e falls back to core.rollMode; pass it explicitly so both paths behave the same.
   const message = { rollMode: getRollMode() };
 
-  if ( kind === "initiative" ) return rollInitiative(actor, { event, advantage, disadvantage, fast, manual });
-  return withManualRolls(() => {
-    switch ( kind ) {
-      case "ability":       return actor.rollAbilityCheck({ ...config, ability: key }, dialog, message);
-      case "save":          return actor.rollSavingThrow({ ...config, ability: key }, dialog, message);
-      case "skill":         return actor.rollSkill({ ...config, skill: key }, dialog, message);
-      case "tool":          return actor.rollToolCheck({ ...config, tool: key }, dialog, message);
-      case "deathSave":     return actor.rollDeathSave(config, dialog, message);
-      case "concentration": return actor.rollConcentration(config, dialog, message);
-      case "hitDie":        return actor.rollHitDie({ event }, dialog, message);
-      case "shortRest":     return actor.shortRest();
-      case "longRest":      return actor.longRest();
-      case "d20":           return new Roll("1d20").toMessage({ speaker: ChatMessage.getSpeaker({ actor }) }, { rollMode: message.rollMode });
-      default: throw new Error(`Unknown roll spec "${spec}"`);
-    }
-  }, manual);
+  switch ( kind ) {
+    case "ability":       return actor.rollAbilityCheck({ ...config, ability: key }, dialog, message);
+    case "save":          return actor.rollSavingThrow({ ...config, ability: key }, dialog, message);
+    case "skill":         return actor.rollSkill({ ...config, skill: key }, dialog, message);
+    case "tool":          return actor.rollToolCheck({ ...config, tool: key }, dialog, message);
+    case "initiative":    return rollInitiative(actor, { event, advantage, disadvantage, fast });
+    case "deathSave":     return actor.rollDeathSave(config, dialog, message);
+    case "concentration": return actor.rollConcentration(config, dialog, message);
+    case "hitDie":        return actor.rollHitDie({ event }, dialog, message);
+    case "shortRest":     return actor.shortRest();
+    case "longRest":      return actor.longRest();
+    case "d20":           return new Roll("1d20").toMessage({ speaker: ChatMessage.getSpeaker({ actor }) }, { rollMode: message.rollMode });
+    default: throw new Error(`Unknown roll spec "${spec}"`);
+  }
 }
 
 /* -------------------------------------------- */
@@ -161,9 +119,7 @@ function ensureViewedCombat(combat) {
  * add a duplicate actor-only combatant every time, because getActiveTokens() is empty without a canvas — and
  * an existing initiative is re-rolled instead of silently kept.
  */
-export async function rollInitiative(actor, {
-  event, advantage=false, disadvantage=false, fast=false, manual=false
-}={}) {
+export async function rollInitiative(actor, { event, advantage=false, disadvantage=false, fast=false }={}) {
   const combat = activeCombat();
   if ( !combat ) {
     ui.notifications.warn(game.i18n.localize("COMBAT.NoneActive"));
@@ -189,11 +145,9 @@ export async function rollInitiative(actor, {
   if ( config.rolls[0].options?.fixed === undefined ) {
     const dialogConfig = foundry.utils.mergeObject(
       { options: { title: game.i18n.localize("DND5E.InitiativeRoll") } },
-      rollDialogOptions(fast)
+      fast ? { configure: false } : {}
     );
-    const rolls = await withManualRolls(
-      () => CONFIG.Dice.D20Roll.build(config, dialogConfig, messageOptions), manual
-    );
+    const rolls = await CONFIG.Dice.D20Roll.build(config, dialogConfig, messageOptions);
     if ( !rolls.length ) return null;
     actor._cachedInitiativeRoll = rolls[0];
   }
@@ -277,12 +231,10 @@ export async function endConcentration(actor) {
  * Use an item (or one of its activities). The dnd5e usage dialog is never skipped here — that is where
  * spell level, consumption and targeting choices live.
  */
-export async function useItem(item, activity=null, { manual=false }={}) {
+export async function useItem(item, activity=null) {
   const message = { rollMode: getRollMode() };
-  return withManualRolls(() => {
-    if ( activity ) return activity.use({}, {}, message);
-    return item.use({}, {}, message);
-  }, manual);
+  if ( activity ) return activity.use({}, {}, message);
+  return item.use({}, {}, message);
 }
 
 /**
@@ -361,7 +313,7 @@ export function usageSummary(activity, config) {
  * @param {object[]} [options.targets]
  */
 export async function rollActivityAttack(activity, {
-  event, advantage=false, disadvantage=false, fast=false, manual=false, rollMode, message, target, targets
+  event, advantage=false, disadvantage=false, fast=false, rollMode, message, target, targets
 }={}) {
   if ( typeof activity?.rollAttack !== "function" ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoAttack"));
   const config = { event };
@@ -375,23 +327,21 @@ export async function rollActivityAttack(activity, {
     message.data.system ??= {};
     message.data.system.targets = targets;
   }
-  return withManualRolls(() => withRollSpeaker(activity, () => activity.rollAttack(
-    config, rollDialogOptions(fast), message ?? { rollMode: rollMode ?? getRollMode() }
-  )), manual);
+  return withRollSpeaker(activity, () => activity.rollAttack(
+    config, fast ? { configure: false } : {}, message ?? { rollMode: rollMode ?? getRollMode() }
+  ));
 }
 
-export async function rollActivityDamage(activity, { event, fast=false, manual=false }={}) {
+export async function rollActivityDamage(activity, { event, fast=false }={}) {
   if ( typeof activity?.rollDamage !== "function" ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoDamage"));
-  return withManualRolls(() => withRollSpeaker(activity, () => activity.rollDamage(
-    { event }, rollDialogOptions(fast), { rollMode: getRollMode() }
-  )), manual);
+  return withRollSpeaker(activity, () => activity.rollDamage(
+    { event }, fast ? { configure: false } : {}, { rollMode: getRollMode() }
+  ));
 }
 
-export async function rollActivityFormula(activity, { event, fast=false, manual=false }={}) {
+export async function rollActivityFormula(activity, { event, fast=false }={}) {
   if ( typeof activity?.rollFormula !== "function" ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoDamage"));
-  return withManualRolls(
-    () => activity.rollFormula({ event }, rollDialogOptions(fast), { rollMode: getRollMode() }), manual
-  );
+  return activity.rollFormula({ event }, fast ? { configure: false } : {}, { rollMode: getRollMode() });
 }
 
 /**

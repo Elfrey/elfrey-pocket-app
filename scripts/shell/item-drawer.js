@@ -149,27 +149,23 @@ export class ItemDrawer extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onUse(event, target) {
     await this.#guard(target, () => this.shell?.useActivity
       ? this.shell.useActivity(this.item, this.#activity(target), event)
-      : useItem(this.item, this.#activity(target), { manual: true }));
+      : useItem(this.item, this.#activity(target)));
     this.shell?.consumeRollMode();
   }
 
   static async #onAttack(event, target) {
     await this.#guard(target, () => this.shell?.rollAttack
       ? this.shell.rollAttack(this.#activity(target), event)
-      : rollActivityAttack(this.#activity(target), { event, manual: true }));
+      : rollActivityAttack(this.#activity(target), { event }));
     this.shell?.consumeRollMode();
   }
 
   static async #onDamage(event, target) {
-    await this.#guard(target, () => rollActivityDamage(
-      this.#activity(target), this.shell?.rollOptions(event) ?? { event, manual: true }
-    ));
+    await this.#guard(target, () => rollActivityDamage(this.#activity(target), this.shell?.rollOptions(event) ?? { event }));
   }
 
   static async #onFormula(event, target) {
-    await this.#guard(target, () => rollActivityFormula(
-      this.#activity(target), this.shell?.rollOptions(event) ?? { event, manual: true }
-    ));
+    await this.#guard(target, () => rollActivityFormula(this.#activity(target), this.shell?.rollOptions(event) ?? { event }));
   }
 
   static async #onToggleEquip(event, target) { await this.#guard(target, () => toggleEquipped(this.item)); }

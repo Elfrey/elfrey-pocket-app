@@ -8,9 +8,10 @@
  *   3. make sure a server session exists (HEAD /game mints the cookie without logging anyone out), connect the
  *      socket — v13 passes the cookie value, v14 keeps it HttpOnly and identifies the session from the handshake;
  *   4. no user on the session → render the login screen (POST /join), reload;
- *   5. load the dnd5e system + our own hooks, request the world, create the Game, initialize.
+ *   5. load dnd5e + our own hooks, request the world, load the explicitly supported client modules, then initialize.
  *
- * Nothing from other modules is ever downloaded or executed.
+ * Modules are not loaded wholesale: socketlib and pp-dice (with declared module dependencies) are the only
+ * third-party scripts needed by supported mobile workflows.
  */
 import { MODULE_ID } from "../settings.js";
 import { MobileMode } from "../mobile-mode.js";
@@ -116,11 +117,9 @@ function patchCore() {
  * setting itself is only a fallback for payloads without that flag.
  */
 function moduleActiveInPayload(data, id) {
-  const P = globalThis.POCKET5E;
   const manifest = (data.modules ?? []).find(m => m.id === id);
   if ( !manifest ) {
     log(`${id}: not installed in this world (payload lists ${(data.modules ?? []).length} modules)`);
-    P.socketlib = "not installed";
     return null;
   }
   let active = manifest.active;
@@ -135,9 +134,39 @@ function moduleActiveInPayload(data, id) {
   }
   if ( !active ) {
     log(`${id}: installed but not enabled in this world`);
-    P.socketlib = "not enabled";
   }
   return active ? manifest : null;
+}
+
+function packagePath(id, path) {
+  path = String(path ?? "").replace(/^\/+/, "");
+  return route(path.startsWith("modules/") ? path : `modules/${id}/${path}`);
+}
+
+async function loadActiveModule(data, id, loaded=new Set(), visiting=new Set()) {
+  if ( loaded.has(id) ) return true;
+  if ( visiting.has(id) ) throw new Error(`Circular module dependency: ${[...visiting, id].join(" → ")}`);
+  const manifest = moduleActiveInPayload(data, id);
+  if ( !manifest ) return false;
+
+  visiting.add(id);
+  for ( const dependency of manifest.relationships?.requires ?? [] ) {
+    if ( dependency.type !== "module" ) continue;
+    if ( !await loadActiveModule(data, dependency.id, loaded, visiting) ) {
+      throw new Error(`${id} requires the active module "${dependency.id}".`);
+    }
+  }
+  visiting.delete(id);
+
+  for ( const style of manifest.styles ?? [] ) {
+    await loadStyle(packagePath(id, style));
+  }
+  for ( const script of manifest.esmodules ?? [] ) {
+    await import(packagePath(id, script));
+  }
+  loaded.add(id);
+  log(`${id}: loaded ${manifest.version ?? ""}`);
+  return true;
 }
 
 function fail(err) {
@@ -237,16 +266,16 @@ async function boot() {
   log(`world payload ≈ ${(P.payloadBytes / 1048576).toFixed(1)} MB (JSON) in ${Math.round(P.tData - P.tWorld)} ms`,
     P.payloadBreakdown.slice(0, 5).map(([k, n]) => `${k} ${(n / 1048576).toFixed(1)} MB`).join(", "));
 
-  // 6. socketlib — the one foreign module the app loads: midi-qol and Chris's Premades address the player's client
-  //    through it (reaction prompts, saves, dialogs) and hang without an answer. Tiny and canvas-free; bridge.js
-  //    registers the handlers. Its init hook fires inside game.initialize(), so it must be imported before that.
+  // 6. socketlib — midi-qol and Chris's Premades address the player's client through it (reaction prompts, saves,
+  //    dialogs) and hang without an answer. Its init hook fires inside game.initialize(), so import it beforehand.
   const socketlibManifest = moduleActiveInPayload(data, "socketlib");
   if ( socketlibManifest ) {
-    // The server vends manifest paths already prefixed with the package folder ("modules/socketlib/src/…").
-    const paths = socketlibManifest.esmodules?.length ? socketlibManifest.esmodules : ["modules/socketlib/src/socketlib.js"];
+    const paths = socketlibManifest.esmodules?.length
+      ? socketlibManifest.esmodules
+      : ["modules/socketlib/src/socketlib.js"];
     for ( const path of paths ) {
       try {
-        await import(route(path.startsWith("modules/") ? path : `modules/socketlib/${path}`));
+        await import(packagePath("socketlib", path));
         P.socketlib = `loaded ${socketlibManifest.version ?? ""} (${path})`;
         log(`socketlib ${P.socketlib}`);
       } catch(err) {
@@ -256,6 +285,16 @@ async function boot() {
     }
   }
   else P.socketlib ??= "skipped";
+
+  // pp-dice wraps Roll evaluation on the rolling client. The standalone app intentionally skips other module
+  // scripts, so load this explicitly (and its declared module dependencies) before Game.initialize() runs init.
+  try {
+    const loaded = await loadActiveModule(data, "pp-dice");
+    P.ppDice = loaded ? "loaded" : "not active";
+  } catch(err) {
+    P.ppDice = `load failed: ${err?.message ?? err}`;
+    console.warn(`${MODULE_ID} | pp-dice not loaded:`, err?.message ?? err);
+  }
 
   // Same for a different world on the same server.
   const worldId = data.world?.id ?? data.world?._id;

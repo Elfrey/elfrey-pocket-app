@@ -451,8 +451,7 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       event,
       advantage: this.rollMode === "advantage",
       disadvantage: this.rollMode === "disadvantage",
-      fast: this.fastRoll,
-      manual: true
+      fast: this.fastRoll
     };
   }
 
@@ -471,10 +470,10 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       activity = await chooseActivity(item);
       if ( activity === undefined ) return null;                 // the player closed the choice dialog
     }
-    if ( !activity || !relayEnabled() ) return useItem(item, activity, { manual: true });
+    if ( !activity || !relayEnabled() ) return useItem(item, activity);
     if ( !designatedGM() ) {
       ui.notifications.warn(game.i18n.localize("POCKET5E.Relay.NoGM"));
-      return useItem(item, activity, { manual: true });
+      return useItem(item, activity);
     }
     // The dnd5e usage dialog runs here, on the phone: spell level, consumption, concentration. Its result travels
     // with the request, so the GM's client never has to ask (see PLAN.md, phase 10.2).
@@ -523,7 +522,6 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
       advantage,
       disadvantage,
       fast: this.fastRoll,
-      manual: true,
       rollMode: getRollMode(),
       target: targetDescriptor.ac ?? undefined,
       targets: [targetDescriptor]

@@ -67,6 +67,16 @@ Hooks.once("init", () => {
     registerFullSheetHooks();
     registerChatCardEnhancements();
     registerDialogAdaptation();
+    if ( game.modules.get("pp-dice")?.active ) {
+      Hooks.on("dnd5e.postRollConfiguration", (rolls, config, dialog, message) => {
+        const subject = config?.subject;
+        const actor = subject?.actor
+          ?? (subject?.documentName === "Actor" ? subject : null)
+          ?? game.actors.get(message?.data?.speaker?.actor);
+        if ( !actor ) return;
+        for ( const roll of rolls ?? [] ) roll._actor ??= actor;
+      });
+    }
     partialsReady = foundry.applications.handlebars.loadTemplates(PARTIALS);
     installHotReload();
     log("init — standalone app");
