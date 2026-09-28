@@ -314,17 +314,47 @@ export async function rollActivityAttack(activity, { event, advantage=false, dis
   const config = { event };
   if ( advantage ) config.advantage = true;
   if ( disadvantage ) config.disadvantage = true;
-  return activity.rollAttack(config, fast ? { configure: false } : {}, message ?? { rollMode: rollMode ?? getRollMode() });
+  return withRollSpeaker(activity, () => activity.rollAttack(
+    config, fast ? { configure: false } : {}, message ?? { rollMode: rollMode ?? getRollMode() }
+  ));
 }
 
 export async function rollActivityDamage(activity, { event, fast=false }={}) {
   if ( typeof activity?.rollDamage !== "function" ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoDamage"));
-  return activity.rollDamage({ event }, fast ? { configure: false } : {}, { rollMode: getRollMode() });
+  return withRollSpeaker(activity, () => activity.rollDamage(
+    { event }, fast ? { configure: false } : {}, { rollMode: getRollMode() }
+  ));
 }
 
 export async function rollActivityFormula(activity, { event, fast=false }={}) {
   if ( typeof activity?.rollFormula !== "function" ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoDamage"));
   return activity.rollFormula({ event }, fast ? { configure: false } : {}, { rollMode: getRollMode() });
+}
+
+/**
+ * dnd5e's activity roll methods build their message speaker synchronously with ChatMessage.getSpeaker({ actor }).
+ * The standalone app has no viewed canvas scene, so create an actor-only speaker for that call; the roll itself
+ * still runs through dnd5e on the player's client and Foundry records the current user as the author.
+ */
+function withRollSpeaker(activity, roll) {
+  if ( globalThis.canvas?.scene ) return roll();
+
+  const actor = activity?.actor ?? activity?.item?.actor;
+  const getSpeaker = ChatMessage.getSpeaker;
+  if ( !actor || (typeof getSpeaker !== "function") ) {
+    throw new Error("Cannot create an actor roll speaker without an actor and Foundry chat API.");
+  }
+
+  ChatMessage.getSpeaker = function(options={}) {
+    if ( options?.actor === actor ) return { actor: actor.id, alias: actor.name };
+    return getSpeaker.call(this, options);
+  };
+  try {
+    // dnd5e creates the speaker before its first await; restore immediately so other client code is unaffected.
+    return roll();
+  } finally {
+    ChatMessage.getSpeaker = getSpeaker;
+  }
 }
 
 export async function toggleEquipped(item) {
