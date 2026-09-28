@@ -1930,6 +1930,12 @@ body.pocket5e-standalone #notifications {
   letter-spacing: 0.1em;
 }
 
+.pocket5e-hp-card,
+.pocket5e-ability-save,
+.pocket5e-row {
+  font-family: var(--dnd5e-font-roboto-condensed, "Roboto Condensed", sans-serif);
+}
+
 .pocket5e-hp-card {
   display: flex;
   flex: 0 0 auto;
