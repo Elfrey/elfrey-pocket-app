@@ -1,5 +1,5 @@
 /**
- * TargetPicker — bottom sheet listing tokens the player can aim at before a relayed item use
+ * TargetPicker — bottom sheet listing tokens before a relayed item use or standalone attack roll
  * (the phone has no canvas, hence no game.user.targets of its own).
  *
  * Candidates come from the GM (relay.js queryTargets): what the character's token can see and how far it is,

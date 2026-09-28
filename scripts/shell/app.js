@@ -499,9 +499,13 @@ export class PocketShell extends HandlebarsApplicationMixin(ApplicationV2) {
     return result;
   }
 
-  /** Roll an attack directly from the player's client, without the GM relay or scene targets. */
+  /** Select a target first, then roll the attack on the player's client. */
   async rollAttack(activity, event) {
     if ( !activity ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoAttack"));
+    const picked = await TargetPicker.pick({
+      actor: this.actor, activity, singleTarget: true, requireTarget: true
+    });
+    if ( !picked ) return null;
     const { advantage, disadvantage } = this.rollOptions(event);
     return rollActivityAttack(activity, {
       event,
