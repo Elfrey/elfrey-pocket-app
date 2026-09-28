@@ -133,6 +133,7 @@
       "Biography": "Biography",
       "Effects": "Effects",
       "Journal": "Journal",
+      "Movement": "Movement",
       "Pick": "Pick a section from the “More” menu.",
       "Breakdown": "Largest part"
     },
@@ -168,6 +169,8 @@
       "Scene": "Scene",
       "Self": "(you)",
       "None": "No target",
+      "Choose": "Choose target",
+      "GMRequired": "A connected GM is required to roll an attack against a selected target.",
       "Use": "Use",
       "Empty": "No visible tokens on this scene.",
       "Hostile": "Enemy",
@@ -183,7 +186,28 @@
       "LongRange": "long range",
       "OutOfRange": "out of range",
       "UnknownCreature": "Unknown Creature",
-      "Unknown": "Unknown"
+      "Unknown": "Unknown",
+      "Stale": "That target is no longer available. Please choose it again."
+    },
+    "Movement": {
+      "Hint": "Tap a direction to move one step. Foundry v14 uses its native keyboard movement, ruler, and movement rules.",
+      "N": "Up",
+      "NE": "Up and right",
+      "E": "Right",
+      "SE": "Down and right",
+      "S": "Down",
+      "SW": "Down and left",
+      "W": "Left",
+      "NW": "Up and left",
+      "NoGM": "A connected GM is required to move the token.",
+      "NoToken": "This character's token was not found on the GM's scene.",
+      "MultipleTokens": "This character has multiple tokens on the GM's scene, so movement is ambiguous.",
+      "SquareGridOnly": "Phone movement currently supports square grids only.",
+      "CollisionUnavailable": "Could not check scene walls. Update Foundry and the module.",
+      "SceneEdge": "The token cannot move beyond the scene edge.",
+      "Blocked": "A wall blocks the way.",
+      "Prevented": "Foundry did not allow the movement to complete.",
+      "Failed": "The token could not be moved."
     },
     "Bridge": {
       "ReactionTitle": "Reaction!",

@@ -31,7 +31,7 @@
     {{/if}}
   </div>
   <footer class="pocket5e-targets-foot">
-    <button type="button" class="pocket5e-btn" data-action="noTargets"><i class="fa-solid fa-ban"></i>{{localize "POCKET5E.Targets.None"}}</button>
-    <button type="button" class="pocket5e-btn pocket5e-btn-primary" data-action="confirmTargets"{{#unless count}} disabled{{/unless}}><i class="fa-solid fa-crosshairs"></i><span>{{localize "POCKET5E.Targets.Use"}} ({{count}})</span></button>
+    {{#unless requireTarget}}<button type="button" class="pocket5e-btn" data-action="noTargets"><i class="fa-solid fa-ban"></i>{{localize "POCKET5E.Targets.None"}}</button>{{/unless}}
+    <button type="button" class="pocket5e-btn pocket5e-btn-primary" data-action="confirmTargets"{{#unless count}} disabled{{/unless}}><i class="fa-solid fa-crosshairs"></i><span>{{confirmLabel}} ({{count}})</span></button>
   </footer>
 </section>

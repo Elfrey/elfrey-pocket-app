@@ -456,6 +456,37 @@ body.pocket5e-standalone .watermark {
 .pocket5e-dl dt { color: var(--pocket5e-muted); }
 .pocket5e-dl dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 
+.pocket5e-movement { text-align: center; }
+.pocket5e-movement > p { margin: 0 0 14px; }
+.pocket5e-movement-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 76px);
+  grid-template-rows: repeat(3, 76px);
+  justify-content: center;
+  gap: 8px;
+}
+.pocket5e-movement-pad button,
+.pocket5e-movement-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 76px;
+  height: 76px;
+  min-width: 76px;
+  min-height: 76px;
+  padding: 8px;
+  border: 1px solid var(--pocket5e-border);
+  border-radius: var(--pocket5e-radius);
+  background: var(--pocket5e-surface-2);
+  color: var(--pocket5e-text);
+  font-size: 1.1rem;
+  touch-action: manipulation;
+}
+.pocket5e-movement-pad button:active { background: var(--pocket5e-accent); color: #fff; }
+.pocket5e-movement-pad button:disabled { opacity: 0.55; }
+.pocket5e-movement-center { color: var(--pocket5e-muted); font-size: 1.5rem; }
+
 /* ---------- Chat drawer ---------- */
 
 .pocket5e-chat-drawer {

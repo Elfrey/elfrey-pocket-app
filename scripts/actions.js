@@ -299,12 +299,22 @@ export function usageSummary(activity, config) {
   return loc(CONFIG.DND5E.spellLevels?.[level], `${level}`);
 }
 
-export async function rollActivityAttack(activity, { event, advantage=false, disadvantage=false, fast=false }={}) {
+/**
+ * @param {Activity} activity
+ * @param {object} [options]
+ * @param {Event} [options.event]
+ * @param {boolean} [options.advantage]
+ * @param {boolean} [options.disadvantage]
+ * @param {boolean} [options.fast]
+ * @param {string} [options.rollMode]
+ * @param {object} [options.message]
+ */
+export async function rollActivityAttack(activity, { event, advantage=false, disadvantage=false, fast=false, rollMode, message }={}) {
   if ( typeof activity?.rollAttack !== "function" ) throw new Error(game.i18n.localize("POCKET5E.Actions.NoAttack"));
   const config = { event };
   if ( advantage ) config.advantage = true;
   if ( disadvantage ) config.disadvantage = true;
-  return activity.rollAttack(config, fast ? { configure: false } : {}, { rollMode: getRollMode() });
+  return activity.rollAttack(config, fast ? { configure: false } : {}, message ?? { rollMode: rollMode ?? getRollMode() });
 }
 
 export async function rollActivityDamage(activity, { event, fast=false }={}) {

@@ -22,6 +22,12 @@
  *           — candidates for the target picker, judged on the GM's canvas: what the character's token can see
  *             (MidiQOL.canSee, else a wall check) and how far / whether within the activity's range
  *             (MidiQOL.checkActivityRange, else dnd5e range fields against the grid measurement).
+ *   phone → { type: "moveToken", v, id, userId, gmId, actorUuid, direction }
+ *   GM    → { type: "moveResult", id, userId, ok, error? }
+ *   phone → { type: "attack", v, id, userId, gmId, actorUuid, itemId, activityId, targetUuids, advantage,
+ *             disadvantage, fast, rollMode }
+ *   GM    → { type: "attackResult", id, userId, ok, stage?, error? }
+ *   phone → { type: "targetPing", v, userId, gmId, actorUuid, targetUuid }
  *
  * Only the designated GM (game.users.activeGM — the same answer on every client) executes, so two GMs never
  * double-cast. The GM validates ownership, resolves the targets on its own canvas and calls
@@ -32,9 +38,14 @@
  * bridge.js builds on this to answer midi-qol's reaction prompts and CPR's remote item rolls from the phone.
  */
 import { MODULE_ID, SETTINGS, RELAY } from "./settings.js";
+import { rollActivityAttack } from "./actions.js";
 
 export const RELAY_CHANNEL = `module.${MODULE_ID}`;
 export const RELAY_VERSION = 2;
+const MOVE_DIRECTIONS = Object.freeze({
+  n:  { x: 0, y: -1 }, ne: { x: 1, y: -1 }, e:  { x: 1, y: 0 }, se: { x: 1, y: 1 },
+  s:  { x: 0, y: 1 },  sw: { x: -1, y: 1 }, w:  { x: -1, y: 0 }, nw: { x: -1, y: -1 }
+});
 /** How long the phone waits for the GM to accept a request. */
 const ACCEPT_TIMEOUT_MS = 15_000;
 /** How long a caller that asked for completion waits for the workflow to finish (saves, reactions of others…). */
@@ -101,7 +112,7 @@ function announceMobile() {
 
 function onClientMessage(msg) {
   if ( msg?.type === "whoIsMobile" ) return announceMobile();
-  if ( !["useResult", "targetsResult"].includes(msg?.type) ) return;
+  if ( !["useResult", "targetsResult", "moveResult", "attackResult"].includes(msg?.type) ) return;
   const entry = pending.get(msg.id);
   if ( !entry ) {
     // A failure reported after the request was already answered (the workflow itself broke): just tell the player.
@@ -146,7 +157,7 @@ function settle(id, entry, fn) {
 export async function requestUse(activity, { item, targetUuids=[], advantage=false, disadvantage=false, rollMode, reaction=false,
   awaitCompletion=false, usage, dialog }={}) {
   const gm = designatedGM();
-  if ( !gm ) throw new Error(L("POCKET5E.Relay.NoGM"));
+  if ( !gm ) throw new Error(L("POCKET5E.Targets.GMRequired"));
   item ??= activity?.item;
   const actor = item?.actor;
   if ( !actor || !item.isEmbedded ) throw new Error(L("POCKET5E.Relay.NotFound"));
@@ -206,6 +217,70 @@ export async function queryTargets(actor, activity=null, { timeoutMs=4000 }={}) 
   return reply;
 }
 
+/**
+ * Ask the designated GM to move this actor's token one square-grid step.
+ * @param {Actor} actor
+ * @param {string} direction One of the eight compass directions.
+ */
+export async function requestTokenMove(actor, direction) {
+  const gm = designatedGM();
+  if ( !gm ) throw new Error(L("POCKET5E.Movement.NoGM"));
+  if ( !actor ) throw new Error(L("POCKET5E.Movement.NoToken"));
+  if ( !Object.prototype.hasOwnProperty.call(MOVE_DIRECTIONS, direction) ) throw new Error(L("POCKET5E.Movement.Failed"));
+
+  const id = foundry.utils.randomID();
+  const result = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error(game.i18n.format("POCKET5E.Relay.Timeout", { name: gm.name })));
+    }, ACCEPT_TIMEOUT_MS);
+    pending.set(id, { resolve, reject, timer, awaitCompletion: false });
+  });
+  game.socket.emit(RELAY_CHANNEL, {
+    type: "moveToken", v: RELAY_VERSION, id, userId: game.user.id, gmId: gm.id,
+    actorUuid: actor.uuid, direction
+  });
+  return result;
+}
+
+/** Roll an attack on the GM's client with the selected target temporarily active. */
+export async function requestAttack(activity, { targetUuids=[], advantage=false, disadvantage=false, fast=false, rollMode }={}) {
+  const gm = designatedGM();
+  if ( !gm ) throw new Error(L("POCKET5E.Targets.GMRequired"));
+  const item = activity?.item;
+  const actor = activity?.actor ?? item?.actor;
+  if ( !actor || !item?.isEmbedded || typeof activity?.rollAttack !== "function" ) {
+    throw new Error(L("POCKET5E.Actions.NoAttack"));
+  }
+  if ( targetUuids.length !== 1 ) throw new Error(L("POCKET5E.Targets.Stale"));
+
+  const id = foundry.utils.randomID();
+  const result = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error(game.i18n.format("POCKET5E.Relay.Timeout", { name: gm.name })));
+    }, ACCEPT_TIMEOUT_MS);
+    pending.set(id, { resolve, reject, timer, awaitCompletion: true });
+  });
+  game.socket.emit(RELAY_CHANNEL, {
+    type: "attack", v: RELAY_VERSION, id, userId: game.user.id, gmId: gm.id,
+    actorUuid: actor.uuid, itemId: item.id, activityId: activity.id,
+    targetUuids: Array.from(targetUuids), advantage: !!advantage, disadvantage: !!disadvantage,
+    fast: !!fast, rollMode: rollMode ?? null
+  });
+  return result;
+}
+
+/** Show a Foundry ping on a token selected in the phone's target picker. */
+export function requestTargetPing(actor, targetUuid) {
+  const gm = designatedGM();
+  if ( !gm || !actor || !targetUuid ) return;
+  game.socket.emit(RELAY_CHANNEL, {
+    type: "targetPing", v: RELAY_VERSION, userId: game.user.id, gmId: gm.id,
+    actorUuid: actor.uuid, targetUuid
+  });
+}
+
 /* -------------------------------------------- */
 /*  GM side (regular /game client)              */
 /* -------------------------------------------- */
@@ -214,7 +289,10 @@ export function registerRelayGM() {
   if ( !game.user.isGM ) return;
   game.socket.on(RELAY_CHANNEL, msg => {
     if ( msg?.type === "use" ) handleUse(msg);
+    else if ( msg?.type === "attack" ) handleAttack(msg);
     else if ( msg?.type === "targets" ) handleTargets(msg);
+    else if ( msg?.type === "moveToken" ) handleTokenMove(msg);
+    else if ( msg?.type === "targetPing" ) handleTargetPing(msg);
     else if ( msg?.type === "dialogResult" ) resolveDialog(msg);
     else if ( msg?.type === "mobile" ) mobileUsers.add(msg.userId);
   });
@@ -350,6 +428,70 @@ function addressedToMe(msg) {
   return (designatedGM()?.id === me) && !addressee?.active;
 }
 
+function handleTargetPing(msg) {
+  try {
+    if ( !addressedToMe(msg) || (msg.v !== RELAY_VERSION) ) return;
+    const user = game.users.get(msg.userId);
+    const actor = resolveActor(msg.actorUuid);
+    if ( !user?.active || !actor?.testUserPermission(user, "OWNER") ) return;
+    if ( !canvas?.ready || !canvas.scene ) return;
+    const [target] = resolveTargets([msg.targetUuid]);
+    if ( !target || target.hidden ) return;
+
+    const observer = canvas.tokens.placeables.find(token =>
+      (token.actor === actor) || (token.document.actorId === actor.id)
+    );
+    if ( observer && (target.object !== observer) ) {
+      const midi = globalThis.MidiQOL;
+      const visible = (typeof midi?.canSee === "function")
+        ? !!midi.canSee(observer, target.object)
+        : hasLineOfSight(observer, target.object);
+      if ( !visible ) return;
+    }
+    canvas.ping(target.object.center, { user });
+  } catch(err) {
+    console.warn(`${MODULE_ID} | relay | target ping failed:`, err);
+  }
+}
+
+async function handleAttack(msg) {
+  const reply = data => game.socket.emit(RELAY_CHANNEL, {
+    type: "attackResult", id: msg.id, userId: msg.userId, ...data
+  });
+  try {
+    if ( !addressedToMe(msg) ) return;
+    if ( msg.v !== RELAY_VERSION ) throw new Error(L("POCKET5E.Movement.Failed"));
+    const user = game.users.get(msg.userId);
+    const actor = resolveActor(msg.actorUuid);
+    if ( !user?.active || !actor?.testUserPermission(user, "OWNER") ) {
+      throw new Error(L("POCKET5E.Relay.Denied"));
+    }
+    const item = actor.items.get(msg.itemId);
+    const activity = item?.system?.activities?.get(msg.activityId);
+    if ( !item || !activity || typeof activity.rollAttack !== "function" ) {
+      throw new Error(L("POCKET5E.Actions.NoAttack"));
+    }
+    if ( !canvas?.ready || !canvas.scene ) throw new Error(L("POCKET5E.Relay.NoScene"));
+    const targets = resolveTargets(msg.targetUuids ?? []);
+    if ( (msg.targetUuids?.length !== 1) || (targets.length !== 1) || targets[0].hidden ) {
+      throw new Error(L("POCKET5E.Targets.Stale"));
+    }
+
+    reply({ ok: true, stage: "accepted" });
+    await withTemporaryTargets(targets, () => rollActivityAttack(activity, {
+      advantage: !!msg.advantage,
+      disadvantage: !!msg.disadvantage,
+      fast: !!msg.fast,
+      rollMode: msg.rollMode ?? undefined,
+      message: { rollMode: msg.rollMode ?? undefined, data: { author: user.id } }
+    }));
+    reply({ ok: true, stage: "done" });
+  } catch(err) {
+    console.warn(`${MODULE_ID} | relay | attack rejected or failed:`, err);
+    reply({ ok: false, error: err?.message ?? String(err) });
+  }
+}
+
 async function handleUse(msg) {
   if ( !addressedToMe(msg) ) return;
   const reply = data => game.socket.emit(RELAY_CHANNEL, { type: "useResult", id: msg.id, userId: msg.userId, ...data });
@@ -463,6 +605,66 @@ function handleTargets(msg) {
     reply({ ok: true, sceneName, units: canvas.scene.grid.units || "", hasObserver: !!observer, tokens });
   } catch(err) {
     console.warn(`${MODULE_ID} | relay | targets query rejected:`, err);
+    reply({ ok: false, error: err?.message ?? String(err) });
+  }
+}
+
+async function handleTokenMove(msg) {
+  const reply = data => game.socket.emit(RELAY_CHANNEL, {
+    type: "moveResult", id: msg.id, userId: msg.userId, ...data
+  });
+  try {
+    if ( !addressedToMe(msg) ) return;
+    if ( msg.v !== RELAY_VERSION ) throw new Error(L("POCKET5E.Movement.Failed"));
+    const user = game.users.get(msg.userId);
+    const actor = resolveActor(msg.actorUuid);
+    if ( !user?.active || !actor?.testUserPermission(user, "OWNER") ) {
+      throw new Error(L("POCKET5E.Relay.Denied"));
+    }
+    if ( !Object.prototype.hasOwnProperty.call(MOVE_DIRECTIONS, msg.direction) ) throw new Error(L("POCKET5E.Movement.Failed"));
+    if ( !canvas?.ready || !canvas.scene ) throw new Error(L("POCKET5E.Relay.NoScene"));
+    if ( canvas.grid.type !== CONST.GRID_TYPES.SQUARE ) throw new Error(L("POCKET5E.Movement.SquareGridOnly"));
+
+    const tokens = canvas.tokens.placeables.filter(token => token.document.actorId === actor.id);
+    if ( !tokens.length ) throw new Error(L("POCKET5E.Movement.NoToken"));
+    if ( tokens.length > 1 ) throw new Error(L("POCKET5E.Movement.MultipleTokens"));
+
+    const token = tokens[0];
+    const step = MOVE_DIRECTIONS[msg.direction];
+    const gridSize = canvas.grid.size;
+    const destination = token.document.getSnappedPosition?.({
+      x: token.document.x + step.x * gridSize,
+      y: token.document.y + step.y * gridSize
+    }) ?? {
+      x: token.document.x + step.x * gridSize,
+      y: token.document.y + step.y * gridSize
+    };
+    const { x, y } = destination;
+    if ( typeof token.document.move === "function" ) {
+      const completed = await token.document.move({ x, y, snapped: true, explicit: true }, {
+        method: "keyboard", showRuler: true
+      });
+      if ( !completed ) throw new Error(L("POCKET5E.Movement.Prevented"));
+    } else {
+      // Foundry v13 has no TokenDocument movement API; keep its previous one-step behavior.
+      const width = token.document.width * gridSize;
+      const height = token.document.height * gridSize;
+      if ( x < 0 || y < 0 || (x + width) > canvas.scene.width || (y + height) > canvas.scene.height ) {
+        throw new Error(L("POCKET5E.Movement.SceneEdge"));
+      }
+      const destination = { x: token.center.x + step.x * gridSize, y: token.center.y + step.y * gridSize };
+      const moveBackend = CONFIG.Canvas?.polygonBackends?.move;
+      if ( typeof moveBackend?.testCollision !== "function" ) {
+        throw new Error(L("POCKET5E.Movement.CollisionUnavailable"));
+      }
+      if ( moveBackend.testCollision(token.center, destination, { type: "move", mode: "any" }) ) {
+        throw new Error(L("POCKET5E.Movement.Blocked"));
+      }
+      await token.document.update({ x, y });
+    }
+    reply({ ok: true });
+  } catch(err) {
+    console.warn(`${MODULE_ID} | relay | token movement rejected:`, err);
     reply({ ok: false, error: err?.message ?? String(err) });
   }
 }
